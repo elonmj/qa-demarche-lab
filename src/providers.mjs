@@ -32,9 +32,12 @@ export class JsonGatewayProvider {
 
 export function validateDecision(decision) {
   const allowed = ['action', 'ref', 'snapshotId', 'text', 'value', 'path', 'intent', 'claim', 'finding'];
-  if (!decision || Object.keys(decision).some(k => !allowed.includes(k)) || !['observe','scroll','click','fill','select','slider','upload','navigate','finish'].includes(decision.action)) throw Error('Invalid model decision');
-  if (['click','fill','select','slider','upload'].includes(decision.action) && (!Number.isInteger(decision.ref) || typeof decision.snapshotId !== 'string')) throw Error('Fresh reference required');
+  if (!decision || typeof decision !== 'object' || Array.isArray(decision) || Object.keys(decision).some(k => !allowed.includes(k)) || !['observe','scroll','click','fill','select','slider','upload','navigate','finish'].includes(decision.action)) throw Error('Invalid model decision');
+  if (['click','fill','select','slider','upload'].includes(decision.action) && (!Number.isSafeInteger(decision.ref) || decision.ref<0 || typeof decision.snapshotId !== 'string' || !decision.snapshotId.length)) throw Error('Fresh reference required');
   if (decision.action === 'fill' && typeof decision.text !== 'string') throw Error('Explicit fill text required');
+  if (['select','upload'].includes(decision.action) && typeof decision.value !== 'string') throw Error('Explicit selection value required');
+  if (decision.action === 'slider' && (!Number.isFinite(decision.value) || decision.value<0 || decision.value>1)) throw Error('Slider requires ratio 0..1');
+  if (decision.action === 'scroll' && decision.value !== undefined && decision.value !== null && !Number.isFinite(decision.value)) throw Error('Scroll requires finite value');
   if (decision.action === 'navigate' && (typeof decision.path !== 'string' || !decision.path.startsWith('/') || decision.path.startsWith('//'))) throw Error('Local navigation only');
   return decision;
 }

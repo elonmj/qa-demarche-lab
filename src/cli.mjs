@@ -20,7 +20,7 @@ try{
   }else if(command==='serve'){
     const config=validateConfig(JSON.parse(fs.readFileSync(configPath,'utf8'))),{provider,agents}=createAgents(config);
     const engine=new Engine(config,outputPath,provider,{agentProviders:agents,privateOptions:{secrets:[process.env.QA_LAB_GATEWAY_TOKEN].filter(Boolean)}});
-    try{await engine.start(config.role || 'visitor');await serveStdio(engine);}catch(error){engine.report();await engine.close();throw error;}
+    try{await engine.start(config.role || 'visitor');await serveStdio(engine);}catch(error){try{engine.report();}finally{await engine.close();}throw error;}
   }else if(command==='unlock'){
     if(!configPath)throw Error('Run directory required');unlock(configPath);console.log('Dead process lock removed; intents preserved');
   }else if(command==='report'){
@@ -41,8 +41,8 @@ try{
         console.log(`${scenario.id}: ${verdict}`);
         await engine.verifyChecks(scenario);
       }
-      engine.report();console.log(path.join(engine.store.directory,'REPORT.md'));
-      if(engine.store.state.holds.length)process.exitCode=2;
-    }finally{if(engine)engine.report();await engine?.close();await fixture?.close();}
+      const report=engine.report();console.log(path.join(engine.store.directory,'REPORT.md'));
+      process.exitCode=report.exitCode;
+    }finally{try{if(engine)engine.report();}finally{try{await engine?.close();}finally{await fixture?.close();}}}
   }else throw Error('Usage: node src/cli.mjs demo | check | agents config.json | run|explore|serve|reconcile|report config.json run-directory | unlock run-directory');
 }catch(error){console.error(error.message);process.exitCode=1;}

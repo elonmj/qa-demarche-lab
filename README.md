@@ -80,6 +80,20 @@ Le modèle voit seulement la mission, le persona, les états factuels et une obs
 
 `REPORT.md` donne état, contrôles, problème/reproduction/attendu/observé/impact ; `report.json` contient les lectures indépendantes, valeurs et périmètres. `uncertain` = relecture/revue, jamais bouton « réessayer ». Les captures sont masquées, les corps réseau et sessions ne sont pas enregistrés. Conserver les artifacts privés et les supprimer selon son besoin ; la rétention automatique locale n'est pas implémentée.
 
+Chaque contrôle indépendant conserve ses deux lectures dans `coverage[].samples`, avec les IDs de preuve, valeurs attendues/observées et scopes disponibles, même lorsqu'il réussit ou que sa lecture est indisponible. Deux missions différentes restent deux contextes de défaut distincts.
+
+Pour `run`, `explore`, `reconcile` et `demo`, la CLI fournit un code utilisable en CI :
+
+| Code | Résultat |
+|---|---|
+| 0 | Exécution terminée sans contrôle échoué ou incomplet |
+| 1 | Erreur d'exécution, de configuration ou d'instrumentation |
+| 2 | Intention non rapprochée : conserver les preuves, ne pas resoumettre |
+| 3 | Au moins un contrôle configuré a échoué |
+| 4 | Contrôle bloqué/inconclusif ou circuit worker ouvert dans le rapport |
+
+Une intention non rapprochée prime sur les autres contrôles. Le code 0 décrit les checks exécutés, pas une certification du site. `report` et `serve` restent des commandes de lecture/pilotage : examiner leurs verdicts JSON. Voir le [renforcement et ses critères](docs/HARDENING.md).
+
 Pour les rôles authentifiés, utiliser l'API `Engine(config, directory, provider, {privateOptions})` et sessions en mémoire, comme expliqué dans [l'architecture](docs/ARCHITECTURE.md). SSO/MFA/bootstrap de compte sont à intégrer par le propriétaire hors modèle ; aucun accès de démonstration réel n'est fourni.
 
 Lire [comparatif et recommandation](docs/COMPARISON.md), [mesures et méthode](docs/EVALUATION.md), [voie web et coûts](docs/WEB-PUBLICATION.md), [limites](docs/LIMITS.md). Dépôt public sous MIT ; `private:true` empêche une publication npm accidentelle. Aucun abonnement, crédit ou déploiement cloud créé.

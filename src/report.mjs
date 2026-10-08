@@ -1,5 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+export function reportExitCode(report) {
+  if (report.holds) return 2;
+  if (report.coverage.some(c=>c.verdict==='fail')) return 3;
+  if (report.providerFault || report.coverage.some(c=>['blocked-prerequisite','inconclusive'].includes(c.verdict))) return 4;
+  return 0;
+}
 export function writeReport(store, config) {
   const state = store.state;
   const report = { label: 'Agents simulant une démarche de QA humain — noyau expérimental', id: config.id, calls: state.calls, reservedMicros: state.reservedMicros, holds: state.holds.length, intents: Object.values(state.intents), coverage: state.coverage, hypotheses: state.candidates, observations: state.observations.map(o=>({id:o.id,path:o.path,screenshot:o.screenshot,errors:o.errors,overflow:o.overflow})), limits: ['Un verdict métier vaut seulement pour les checks et le périmètre des probes configurés.', 'Aucune certification exhaustive, de paie ou de sécurité serveur.', 'Hypothèses du modèle non confirmées : revue indépendante requise.', 'Captures privées ; masquage des secrets connus ne garantit pas anonymisation de toutes données.'] };
@@ -7,6 +13,7 @@ export function writeReport(store, config) {
   report.actions=Object.entries(state.steps).map(([id,step])=>({id,...step}));
   report.providerFault=state.providerFault || null;
   report.costMeaning=Object.values(report.workers).some(w=>w.billingMode==='subscription')?'Subscription CLI: reported USD cost is unavailable; zero reservation is not a zero-cost invoice.':'Persistent maximum reservations; not a supplier invoice.';
+  report.exitCode=reportExitCode(report);
   fs.writeFileSync(path.join(store.directory,'report.json'),JSON.stringify(report,null,2));
   const line = value => String(value ?? '').replace(/[\r\n|]/g,' ');
   const candidates = report.hypotheses.map(c=>c.kind==='deterministic-failure'?`- Contrôle ${line(c.check)} : attendu ${line(JSON.stringify(c.expected))} ; observé ${line(JSON.stringify(c.observed[0]?.checks))}. Impact : ${line(c.impact)}. Reproduction : scénario ${line(c.scenario)}, puis deux lectures de contrôle ; preuve UI ${c.evidence}. Portée et revue : ${line(c.qualification)}.`:`- Proposition non confirmée : ${line(c.claim || JSON.stringify(c.finding))}. Preuve UI ${c.evidence}. Impact à revoir indépendamment.`).join('\n');

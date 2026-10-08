@@ -19,7 +19,9 @@ export class BrowserAdapter {
     await this.context.routeWebSocket('**/*', socket => socket.close());
     await this.context.route('**/*', async route => {
       const request = route.request();
-      const result = this.policy.request(request.url(), request.method(), request.postData());
+      let result;
+      try { result = this.policy.request(request.url(), request.method(), request.postData()); }
+      catch { result = {allow:false,reason:'Journal unavailable; request denied'}; }
       // Never persist headers, query strings, request/response bodies or raw URLs.
       const row = { method: request.method(), path: this.redactor.text(new URL(request.url()).pathname), ...result };
       this.network.push(row);

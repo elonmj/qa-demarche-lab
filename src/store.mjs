@@ -4,7 +4,7 @@ import { createHash, randomUUID } from 'node:crypto';
 
 export const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export function safeId(value) {
-  if (!/^[a-zA-Z0-9_-]{1,90}$/.test(value)) throw Error('Invalid identifier');
+  if (typeof value !== 'string' || !/^[a-zA-Z0-9_-]{1,90}$/.test(value)) throw Error('Invalid identifier');
   return value;
 }
 // An append-only fsynced ledger is authoritative; a truncated/corrupt ledger fails closed.
@@ -39,16 +39,37 @@ export class Store {
       }
     } catch (error) { this.close(); throw error; }
   }
+  assertOpen() {
+    if (this.closed) throw Error('Store closed; no further actions');
+    if (this.failed) throw Error('Ledger failure; stop and review the run before recovery');
+    try {
+      if (JSON.parse(fs.readFileSync(this.lock)).token !== this.token) throw Error('Run lock ownership lost');
+    } catch (error) { this.failed = true; throw error; }
+  }
   commit(type, facts = {}) {
+    this.assertOpen();
+    try { this.#append(type, facts); }
+    catch (error) { this.failed = true; throw error; }
+  }
+  #append(type, facts) {
     const entry = { sequence: this.sequence + 1, previous: this.previous, time: new Date().toISOString(), type, facts, state: this.state };
     const digest = hash(entry);
     const serialized = JSON.stringify({ ...entry, digest }) + '\n';
     if ((fs.existsSync(this.file) ? fs.statSync(this.file).size : 0) + Buffer.byteLength(serialized) > 64 * 1024 * 1024) throw Error('Ledger storage cap reached; no further actions');
     const fd = fs.openSync(this.file, 'a', 0o600);
-    try { fs.writeSync(fd, serialized); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+    try {
+      const buffer = Buffer.from(serialized);
+      for (let offset=0; offset<buffer.length;) {
+        const written = fs.writeSync(fd,buffer,offset,buffer.length-offset);
+        if (!written) throw Error('Ledger append incomplete');
+        offset += written;
+      }
+      fs.fsyncSync(fd);
+    } finally { fs.closeSync(fd); }
     this.sequence++; this.previous = digest; this.events.push(JSON.parse(JSON.stringify({ ...entry, digest })));
   }
   reserve(provider, quota, budget) {
+    this.assertOpen();
     if(this.allowedProviders.size&&!this.allowedProviders.has(provider.id))throw Error('Undeclared worker; no fallback');
     if(!this.allowedProviders.size && this.state.provider && (this.state.provider.id !== provider.id || this.state.provider.maxCostMicros !== provider.maxCostMicros)) throw Error('Provider changed; no implicit fallback');
     const previous=this.state.workerUsage?.[provider.id];
@@ -63,6 +84,8 @@ export class Store {
     this.commit('call-reserved', { provider: provider.id, cost, quota });
   }
   close() {
+    if (this.closed) return;
+    this.closed = true;
     if (fs.existsSync(this.lock) && JSON.parse(fs.readFileSync(this.lock)).token === this.token) fs.unlinkSync(this.lock);
   }
 }
