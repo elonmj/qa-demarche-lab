@@ -31,6 +31,7 @@ Résultats finaux et chemins locaux : [preuves de validation](review-evidence.js
 
 - `npm run check`, `npm test`, `npm run demo`, `npm run benchmark`, `node fixtures/visual-qa.mjs` exécutés sous Windows / Node 24.14.1 / Chromium Playwright 1.61.1.
 - Suite finale : **107/107**, zéro ignoré, 70 698,4783 ms. Même fichier de 29 régressions (SHA-256 consigné) : **0/29** sur la base, **29/29** dans la suite corrigée. Les 63 tests antérieurs restent présents.
+- Après ouverture de la PR, les jobs Windows/Linux GitHub ont échoué **avant toute étape** : annotation « The job was not started because your account is locked due to a billing issue. » [Run concerné](https://github.com/elonmj/qa-demarche-lab/actions/runs/37818380570). Aucun log de test distant, aucune validation Linux/CI revendiquée et aucun achat ni relance pour contourner ce blocage.
 - Démo : `save-basic: confirmed`, une seule écriture consentie.
 - Benchmark historique : 8/8 pour les deux implémentations, zéro rejeu non autorisé ; durées descriptives, aucune conclusion statistique.
 - Évaluation supplémentaire : seeds 17, 2026, 8675309, 24 cas (totaux, unités, données, ordre, latence, indisponibilité, JSON malformé et lectures instables). Défauts cachés au décideur scripté : 6 vrais positifs, 0 faux négatif, 0 faux positif parmi 18 contrôles négatifs ; 12 résultats bloqués/inconclusifs. La matrice est calculée et un test lui injecte volontairement deux faux positifs et un faux négatif. Aucun rappel LLM/autonome mesuré.

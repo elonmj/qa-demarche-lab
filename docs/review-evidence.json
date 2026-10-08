@@ -347,5 +347,14 @@
     "No Linux/remote CI, multi-day campaign, cognitive injection resilience or autonomous discovery measured.",
     "Timeout sensitivity under concurrent Chromium load observed; test files serialized, explicit API concurrency tests retained.",
     "Browser resource buffering, unknown PII/canvas and legacy artifact inventory remain limitations."
-  ]
+  ],
+  "remoteCI": {
+    "url": "https://github.com/elonmj/qa-demarche-lab/actions/runs/37818380570",
+    "head": "864167098a22a4093a1477b925b0bea2dffd623c",
+    "conclusion": "failure",
+    "jobsStarted": false,
+    "steps": 0,
+    "reason": "The job was not started because your account is locked due to a billing issue.",
+    "validatedPlatforms": []
+  }
 }
