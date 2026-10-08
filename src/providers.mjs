@@ -1,3 +1,4 @@
+import { readJson } from './bounds.mjs';
 // Models propose a single bounded action. They receive no tools, credentials or raw trace.
 export class ScriptedProvider {
   constructor(decide) { this.id = 'scripted-fixture'; this.maxCostMicros = 0; this.capabilities = { json: true, vision: false, live: false }; this.decide = decide; }
@@ -16,21 +17,20 @@ export class JsonGatewayProvider {
     this.id = id; this.endpoint = endpoint; this.quotaEndpoint = quotaEndpoint; this.maxCostMicros = maxCostMicros; this.token = token; this.model = model;
     this.capabilities = { json: true, vision: false, live: true };
   }
-  async quota() {
-    const response = await fetch(this.quotaEndpoint, { headers: { authorization: `Bearer ${this.token}` }, signal: AbortSignal.timeout(5000), redirect: 'error' });
-    if (!response.ok) throw Error('Provider quota unavailable');
-    return response.json();
+  async quota({signal} = {}) {
+    const response = await fetch(this.quotaEndpoint, { headers: { authorization: `Bearer ${this.token}` }, signal: signal ? AbortSignal.any([signal,AbortSignal.timeout(5000)]) : AbortSignal.timeout(5000), redirect: 'error' });
+    if (!response.ok) { await response.body?.cancel(); throw Error('Provider quota unavailable'); }
+    return readJson(response,20000,'Provider quota');
   }
-  async decide(input) {
-    const response = await fetch(this.endpoint, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(20000), body: JSON.stringify({ model: this.model, maxCostMicros: this.maxCostMicros, input }) });
-    if (!response.ok) throw Error('Provider request rejected; no retry');
-    const text = await response.text();
-    if (text.length > 20000) throw Error('Provider reply too large');
-    return JSON.parse(text);
+  async decide(input, {signal} = {}) {
+    const response = await fetch(this.endpoint, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, redirect: 'error', signal: signal ? AbortSignal.any([signal,AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000), body: JSON.stringify({ model: this.model, maxCostMicros: this.maxCostMicros, input }) });
+    if (!response.ok) { await response.body?.cancel(); throw Error('Provider request rejected; no retry'); }
+    return readJson(response,20000,'Provider');
   }
 }
 
 export function validateDecision(decision) {
+  if (Buffer.byteLength(JSON.stringify(decision) || '') > 20000) throw Error('Decision output cap reached');
   const allowed = ['action', 'ref', 'snapshotId', 'text', 'value', 'path', 'intent', 'claim', 'finding'];
   if (!decision || typeof decision !== 'object' || Array.isArray(decision) || Object.keys(decision).some(k => !allowed.includes(k)) || !['observe','scroll','click','fill','select','slider','upload','navigate','finish'].includes(decision.action)) throw Error('Invalid model decision');
   if (['click','fill','select','slider','upload'].includes(decision.action) && (!Number.isSafeInteger(decision.ref) || decision.ref<0 || typeof decision.snapshotId !== 'string' || !decision.snapshotId.length)) throw Error('Fresh reference required');

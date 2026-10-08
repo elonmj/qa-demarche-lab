@@ -1,5 +1,7 @@
 # État réel et conditions avant publication
 
+La [revue adversariale indépendante](ADVERSARIAL-REVIEW.md) corrige des défauts de concurrence, budgets, confidentialité et preuve malgré la précédente suite verte. Elle borne captures/DOM et réduit le journal, mais ne borne pas toute la mémoire de Chromium, n'atteste aucune nouvelle intégration fournisseur réelle et ne mesure pas une campagne de plusieurs jours. Le coût de diff des deltas dépend encore de l'état entier. Les artifacts historiques sans compteur d'octets ne sont pas inventoriés automatiquement. Les seeds synthétiques ne prouvent ni rappel autonome ni absence de faux positifs sur sites réels.
+
 Livré : noyau CLI/API et JSON-RPC stdio, workers sélectionnables, configuration par site, navigateur réel, journal durable, oracles explicites, deux sites synthétiques, tests de crash/reprise/budgets et benchmark contre Playwright écrit. Une intégration Codex réelle a produit deux décisions avant arrêt au budget ; l'intégration Antigravity est bloquée sur le poste testé. Aucun SaaS déployé, aucune campagne sur un site client réel.
 
 | Priorité | Limite restante | Condition de levée |
