@@ -15,7 +15,7 @@ export async function startShop() {
       if (payload.mode === 'reject') { state.refusals.push(payload.key); response.statusCode=403; return json(response,{accepted:false}); }
       if (payload.mode === 'http200-refusal') { state.refusals.push(payload.key); return json(response,{accepted:false}); }
       if (payload.mode === 'delayed') await new Promise(r=>setTimeout(r,250));
-      state.records[payload.key] = { status:'saved', quantity: Number(payload.quantity), unit:'items', date:'2026-10-08', zone:'Africa/Porto-Novo', account:'synthetic-clerk' };
+      state.records[payload.key] = { reference:payload.key, status:'saved', quantity: Number(payload.quantity), unit:'items', date:'2026-10-08', zone:'Africa/Porto-Novo', account:'synthetic-clerk' };
       if (payload.mode === 'timeout') return; // Commit succeeded; response intentionally never arrives.
       return json(response,{accepted:true});
     }
@@ -47,16 +47,16 @@ by('confirm').onclick=async()=>{
 
 // Independent implementation and business model, not another skin on the shop.
 export async function startRegistry() {
-  const state = { document:{id:'doc-demo',status:'provisional',pages:2,unit:'pages'}, closed:false, revisions:0, amounts:[12,8], total:21 };
+  const state = { document:{id:'doc-demo',status:'provisional',pages:2,unit:'pages'}, operation:null, closed:false, revisions:0, amounts:[12,8], total:21 };
   const server = http.createServer(async(request,response)=>{
     const pathname = new URL(request.url,'http://localhost').pathname;
     if(pathname==='/favicon.ico'){response.writeHead(204);return response.end();}
     if(pathname==='/register/state')return json(response,state);
-    if(pathname==='/register/approve'){state.document.status='definitive';state.closed=true;return json(response,{ok:true});}
-    if(pathname==='/register/edit'){state.document.pages=3;state.revisions++;return json(response,{ok:true});} // Deliberate server defect: closed edits accepted.
+    if(pathname==='/register/approve'){state.operation=(await body(request)).operation;state.document.status='definitive';state.closed=true;return json(response,{ok:true});}
+    if(pathname==='/register/edit'){state.operation=(await body(request)).operation;state.document.pages=3;state.revisions++;return json(response,{ok:true});} // Deliberate server defect: closed edits accepted.
     if(pathname==='/register'){
       response.setHeader('content-type','text/html; charset=utf-8');
-      return response.end(`<!doctype html><meta name="viewport" content="width=device-width"><title>Registre synthétique</title>${style}<main><h1>Registre documentaire</h1><p>Déclaration provisoire et validation définitive</p><p id="doc"></p><p>Lignes : 12 + 8. Total affiché : 21.</p><button id="approve">Valider définitivement</button><button id="edit">Modifier après clôture</button><a href="/register">Relire</a></main><script>const read=async()=>{const s=await(await fetch('/register/state')).json();document.getElementById('doc').textContent=s.document.status+' : '+s.document.pages+' pages';};document.getElementById('approve').onclick=async()=>{await fetch('/register/approve',{method:'POST'});read()};document.getElementById('edit').onclick=async()=>{await fetch('/register/edit',{method:'POST'});read()};read();</script>`);
+      return response.end(`<!doctype html><meta name="viewport" content="width=device-width"><title>Registre synthétique</title>${style}<main><h1>Registre documentaire</h1><p>Déclaration provisoire et validation définitive</p><p id="doc"></p><p>Lignes : 12 + 8. Total affiché : 21.</p><button id="approve">Valider définitivement</button><button id="edit">Modifier après clôture</button><a href="/register">Relire</a></main><script>const read=async()=>{const s=await(await fetch('/register/state')).json();document.getElementById('doc').textContent=s.document.status+' : '+s.document.pages+' pages';};document.getElementById('approve').onclick=async()=>{await fetch('/register/approve',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({operation:'approve-doc-demo'})});read()};document.getElementById('edit').onclick=async()=>{await fetch('/register/edit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({operation:'edit-doc-demo'})});read()};read();</script>`);
     }
     response.writeHead(404);response.end();
   });
@@ -68,9 +68,12 @@ async function body(request){let value='';for await(const chunk of request)value
 
 export function shopConfig(origin,mode='basic',key='sample') {
   const scenario = { id:`save-${mode}`,goal:'Préparer localement puis sauvegarder une seule fois ; rapprocher la référence persistée.',persona:{role:'clerk',constraints:'Pressé, exige reçu lisible et preuve métier'},writeConsent:{confirmed:true,reason:'Fixture synthétique jetable',endpoints:[{path:'/api/save',methods:['POST'],maxRequests:1},...(mode==='multiple'?[{path:'/api/audit',methods:['POST'],maxRequests:1}]:[])]},settleMs:mode==='delayed'?50:120,probeTimeoutMs:650,steps:[{id:'key',action:'fill',target:'Référence',text:key},{id:'prepare',action:'click',target:'Préparer'},{id:'submit',action:'click',target:'Confirmer',submit:true}],probes:[{id:'saved',path:'/api/state',verdict:'confirmed',scope:{unit:'items',date:'2026-10-08',zone:'Africa/Porto-Novo',account:'synthetic-clerk'},checks:[{path:`records.${key}.status`,op:'equals',value:'saved'},{path:`records.${key}.quantity`,op:'equals',value:3},{path:`records.${key}.unit`,op:'equals',value:'items'},{path:`records.${key}.date`,op:'equals',value:'2026-10-08'},{path:`records.${key}.zone`,op:'equals',value:'Africa/Porto-Novo'},{path:`records.${key}.account`,op:'equals',value:'synthetic-clerk'}]},{id:'refused',path:'/api/state',verdict:'rejected',checks:[{path:'refusals',op:'equals',value:[key]}]}]};
+  scenario.operationId=key;
+  scenario.probes[0].correlation={path:`records.${key}.reference`,op:'equals',value:key};
+  scenario.probes[1].correlation={path:'refusals',op:'includes',value:key};
   for(const endpoint of scenario.writeConsent.endpoints){endpoint.allowedFields=['key','quantity','mode'];endpoint.bodyChecks=[{path:'key',op:'equals',value:key},{path:'quantity',op:'equals',value:'3'},{path:'mode',op:'equals',value:mode}];}
   return {id:`shop-${mode}`,origin,entry:`/case/${mode}`,reads:[{path:`/case/${mode}`,methods:['GET']},{path:'/case/basic',methods:['GET']},{path:'/case/controls',methods:['GET']},{path:'/api/state',methods:['GET']},{path:'/favicon.ico',methods:['GET']}],sensitiveSelectors:['[data-private]'],budget:{maxCalls:8,maxCostMicros:100000,reserveFraction:0.15,quotaMaxAgeMs:30000},uploadFixtures:{note:{name:'note.txt',mimeType:'text/plain',content:'synthetic fixture only'}},scenarios:[scenario]};
 }
 export function registryConfig(origin,action='approve') {
-  return {id:`registry-${action}`,origin,entry:'/register',reads:[{path:'/register',methods:['GET']},{path:'/register/state',methods:['GET']},{path:'/favicon.ico',methods:['GET']}],budget:{maxCalls:8,maxCostMicros:100000,reserveFraction:0.15,quotaMaxAgeMs:30000},scenarios:[{id:action,goal:'Vérifier le visa définitif et la conservation documentaire',writeConsent:{confirmed:true,reason:'Registre synthétique',endpoints:[{path:`/register/${action}`,methods:['POST'],maxRequests:1}]},steps:[{id:'submit',action:'click',target:action==='approve'?'Valider définitivement':'Modifier après clôture',submit:true}],probes:[{path:'/register/state',verdict:'confirmed',checks:[{path:action==='approve'?'document.status':'document.pages',op:'equals',value:action==='approve'?'definitive':3},{path:'closed',op:'equals',value:true}]}]}]};
+  return {id:`registry-${action}`,origin,entry:'/register',reads:[{path:'/register',methods:['GET']},{path:'/register/state',methods:['GET']},{path:'/favicon.ico',methods:['GET']}],budget:{maxCalls:8,maxCostMicros:100000,reserveFraction:0.15,quotaMaxAgeMs:30000},scenarios:[{id:action,operationId:`${action}-doc-demo`,goal:'Vérifier le visa définitif et la conservation documentaire',writeConsent:{confirmed:true,reason:'Registre synthétique',endpoints:[{path:`/register/${action}`,methods:['POST'],maxRequests:1,allowedFields:['operation'],bodyChecks:[{path:'operation',op:'equals',value:`${action}-doc-demo`}]}]},steps:[{id:'submit',action:'click',target:action==='approve'?'Valider définitivement':'Modifier après clôture',submit:true}],probes:[{path:'/register/state',verdict:'confirmed',correlation:{path:'operation',op:'equals',value:`${action}-doc-demo`},checks:[{path:action==='approve'?'document.status':'document.pages',op:'equals',value:action==='approve'?'definitive':3},{path:'closed',op:'equals',value:true}]}]}]};
 }

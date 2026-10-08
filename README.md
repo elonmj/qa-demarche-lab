@@ -6,6 +6,8 @@ Version **0.2.0 beta**, code sous licence MIT. Deux sites synthétiques, tests d
 
 ## Pour un orchestrateur LLM
 
+Une [revue indépendante adversariale](docs/ADVERSARIAL-REVIEW.md) reprend la PR #1 : concurrence, reprise, deadlines, confidentialité, oracles et stockage. Elle inclut des régressions avant/après et une évaluation locale à seeds fixes. Voir les changements de contrat d'écriture et de format du journal avant de reprendre une ancienne campagne.
+
 Lire [AGENTS.md](AGENTS.md) puis [le guide d'orchestration](docs/ORCHESTRATION.md). Le modèle de l'orchestrateur est indépendant des workers : par exemple GPT-6 Sol orchestre et choisit un worker moins coûteux pour l'exploration. Le choix est explicite, jamais un fallback automatique.
 
 ```sh

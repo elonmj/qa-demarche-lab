@@ -7,7 +7,7 @@
   "license": "MIT",
   "engines": { "node": ">=22" },
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "benchmark": "node fixtures/benchmark.mjs",
     "demo": "node src/cli.mjs demo",
     "check": "node src/cli.mjs check",

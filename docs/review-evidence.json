@@ -1,0 +1,351 @@
+{
+  "date": "2026-10-08",
+  "baseCommit": "5b70d19dd473456ca05f54236b47e7d5c97b4a5c",
+  "branch": "codex/adversarial-harness-review",
+  "environment": {
+    "node": "v24.14.1",
+    "os": "Windows",
+    "playwright": "1.61.1"
+  },
+  "regressionFileSha256": "3cea5d8adb3639e5d08ea2b1a3a284f4966d8d4694041319f2b136db1abc0a53",
+  "baseline": {
+    "command": "node --test tests/adversarial.test.mjs",
+    "exitCode": 1,
+    "expectedFailure": true,
+    "tests": 29,
+    "pass": 0,
+    "fail": 29,
+    "cancelled": 0,
+    "skipped": 0,
+    "duration_ms": 9934.1861
+  },
+  "corrected": {
+    "command": "npm test",
+    "exitCode": 0,
+    "tests": 107,
+    "pass": 107,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "duration_ms": 70698.4783
+  },
+  "commands": [
+    {
+      "command": "npm run check",
+      "exitCode": 0,
+      "result": "Syntax OK"
+    },
+    {
+      "command": "npm run demo",
+      "exitCode": 0,
+      "result": "save-basic: confirmed",
+      "artifact": "artifacts/demo-1791480448592/REPORT.md"
+    },
+    {
+      "command": "npm run benchmark",
+      "exitCode": 0,
+      "artifact": "artifacts/benchmark-1791480450919/RESULTS.json"
+    },
+    {
+      "command": "node fixtures/visual-qa.mjs",
+      "exitCode": 0,
+      "artifact": "artifacts/visual-1791480486541/VIEWS.json"
+    }
+  ],
+  "benchmark": {
+    "totals": {
+      "qa-lab": {
+        "cases": 8,
+        "correct": 8,
+        "durationMs": 11743,
+        "llmCalls": 0,
+        "llmCostMicros": 0,
+        "unauthorizedRepeats": 0,
+        "falsePositives": 0
+      },
+      "playwright-authored": {
+        "cases": 8,
+        "correct": 8,
+        "durationMs": 5622,
+        "llmCalls": 0,
+        "llmCostMicros": 0,
+        "unauthorizedRepeats": 0,
+        "falsePositives": 0
+      }
+    },
+    "seeds": [
+      17,
+      2026,
+      8675309
+    ],
+    "metrics": {
+      "truePositives": 6,
+      "falsePositives": 0,
+      "trueNegatives": 18,
+      "falseNegatives": 0,
+      "unresolved": 12,
+      "negativeCases": 18,
+      "positiveCases": 6,
+      "falsePositiveRate": 0,
+      "recall": 1
+    },
+    "cases": [
+      {
+        "seed": 17,
+        "caseHash": "4dc6c3d1360327940ed2dff63c060bf91dc63153278f96d4376a7e5dc6a959b0",
+        "truth": "unavailable",
+        "verdict": "blocked-prerequisite",
+        "findings": 0
+      },
+      {
+        "seed": 17,
+        "caseHash": "86f52662750470fa745d642b6c89e5ff96afdb369df09f82c26df457af5d7999",
+        "truth": "malformed",
+        "verdict": "blocked-prerequisite",
+        "findings": 0
+      },
+      {
+        "seed": 17,
+        "caseHash": "0ace1fbdda5bd45e48ac2204c5b44dc1ceeb8a81deac8b27ed8f1c6efc8f6b7a",
+        "truth": "unstable",
+        "verdict": "inconclusive",
+        "findings": 0
+      },
+      {
+        "seed": 17,
+        "caseHash": "63b85bd1fc615bc87cdc837a4dbefcc83088bdde3c38411d18ecf00b4e206b3b",
+        "truth": "clean",
+        "verdict": "pass",
+        "findings": 0
+      },
+      {
+        "seed": 17,
+        "caseHash": "3930ae937f72a6810486a6d176d483bba60398a7458893bfedd221c6449db4e6",
+        "truth": "wrong-total",
+        "verdict": "fail",
+        "findings": 1
+      },
+      {
+        "seed": 17,
+        "caseHash": "c36e989c5c0201b202d5b7f034426b404784d2404e611a03501d8b96142aa2b9",
+        "truth": "wrong-unit",
+        "verdict": "blocked-prerequisite",
+        "findings": 0
+      },
+      {
+        "seed": 17,
+        "caseHash": "3913077c46546f7b5fb0b1a18543eafd014d253203d1e35264790f0352209e81",
+        "truth": "wrong-total",
+        "verdict": "fail",
+        "findings": 1
+      },
+      {
+        "seed": 17,
+        "caseHash": "9bb5819a0b27ca1ebf52fb79dd12e147a7bb05e0914bd297b33af101faae9e7a",
+        "truth": "clean",
+        "verdict": "pass",
+        "findings": 0
+      },
+      {
+        "seed": 2026,
+        "caseHash": "e131f9dc1aed28ea271fd328bf4cb38ab920b42f00a683cd1dc0798d149a775f",
+        "truth": "unstable",
+        "verdict": "inconclusive",
+        "findings": 0
+      },
+      {
+        "seed": 2026,
+        "caseHash": "6e3b500943acfae7627d4273da825ae0dd09ca0a56d288f86cf386978e72f06a",
+        "truth": "wrong-unit",
+        "verdict": "blocked-prerequisite",
+        "findings": 0
+      },
+      {
+        "seed": 2026,
+        "caseHash": "967d5dbb24b8a9af67c1b8a02be16787d3c230d6b667a2723daa5628eff2e195",
+        "truth": "clean",
+        "verdict": "pass",
+        "findings": 0
+      },
+      {
+        "seed": 2026,
+        "caseHash": "458792d1d74f5b8328415f9f8f3f55587fd029f6ede6dea3bb51fa32fa75556c",
+        "truth": "wrong-total",
+        "verdict": "fail",
+        "findings": 1
+      },
+      {
+        "seed": 2026,
+        "caseHash": "baca1ad042b4ea65ee265e9d3acf9d6637f3b6561eda94aa41f52a9b4142120d",
+        "truth": "clean",
+        "verdict": "pass",
+        "findings": 0
+      },
+      {
+        "seed": 2026,
+        "caseHash": "f9f20b263271f32fa20a2e331b9bc5ea515c7296909e89de15a1498ce9f8bd9d",
+        "truth": "malformed",
+        "verdict": "blocked-prerequisite",
+        "findings": 0
+      },
+      {
+        "seed": 2026,
+        "caseHash": "059604a52db418cf9581d6df2372a22eea3925c79e864493a811d7820f6ffc53",
+        "truth": "unavailable",
+        "verdict": "blocked-prerequisite",
+        "findings": 0
+      },
+      {
+        "seed": 2026,
+        "caseHash": "5dcfeea7d3fff46c8ba8cf4d28e31e6f9fd2bc1e8971d9e1cf71390a08486817",
+        "truth": "wrong-total",
+        "verdict": "fail",
+        "findings": 1
+      },
+      {
+        "seed": 8675309,
+        "caseHash": "ea6e16bc9f53972b97418d99ca76aea9650cf91a90aa921d11067187c3e64179",
+        "truth": "malformed",
+        "verdict": "blocked-prerequisite",
+        "findings": 0
+      },
+      {
+        "seed": 8675309,
+        "caseHash": "192c7ecf9d5e1623e054d998b8830598489a79ef1ab7cd5e75a8d4e618144880",
+        "truth": "wrong-total",
+        "verdict": "fail",
+        "findings": 1
+      },
+      {
+        "seed": 8675309,
+        "caseHash": "b4d5723e5112bc5d338670d3939e8a204c4957d1655f4387fd3db22eac048329",
+        "truth": "clean",
+        "verdict": "pass",
+        "findings": 0
+      },
+      {
+        "seed": 8675309,
+        "caseHash": "86034308c8d5d254ee701d7469f425765b7c30f9b3d5faa02947829143175286",
+        "truth": "clean",
+        "verdict": "pass",
+        "findings": 0
+      },
+      {
+        "seed": 8675309,
+        "caseHash": "498257ac76b2aa9b2c2db8e33d28e1cfd451194fda6c75dc91958d61457d5ffc",
+        "truth": "wrong-unit",
+        "verdict": "blocked-prerequisite",
+        "findings": 0
+      },
+      {
+        "seed": 8675309,
+        "caseHash": "0a6db36d55896951d0e38fc576348afa9e3cf2ea619fb4298add1f28091d0a43",
+        "truth": "unstable",
+        "verdict": "inconclusive",
+        "findings": 0
+      },
+      {
+        "seed": 8675309,
+        "caseHash": "3ca225711c34bb3b8bf7e75d4ccb72bf5d9f3474d1120b98e6dfd473f3984f40",
+        "truth": "wrong-total",
+        "verdict": "fail",
+        "findings": 1
+      },
+      {
+        "seed": 8675309,
+        "caseHash": "dbf8877ceb4b038f448fe1b3865764af10efc57ab375f26dc962d38da97c31b5",
+        "truth": "unavailable",
+        "verdict": "blocked-prerequisite",
+        "findings": 0
+      }
+    ]
+  },
+  "visual": [
+    {
+      "site": "shop",
+      "width": 390,
+      "id": "da107b04-823b-45c5-bf7c-3267fa961d9c",
+      "path": "/case/basic",
+      "errors": [],
+      "overflow": false,
+      "screenshotObserved": true,
+      "domRead": true
+    },
+    {
+      "site": "shop",
+      "width": 1280,
+      "id": "ae3822eb-73ba-48df-9e95-e7014de8f383",
+      "path": "/case/basic",
+      "errors": [],
+      "overflow": false,
+      "screenshotObserved": true,
+      "domRead": true
+    },
+    {
+      "site": "registry",
+      "width": 390,
+      "id": "bfab6647-fac9-4f3b-a89c-c354381e9196",
+      "path": "/register",
+      "errors": [],
+      "overflow": false,
+      "screenshotObserved": true,
+      "domRead": true
+    },
+    {
+      "site": "registry",
+      "width": 1280,
+      "id": "e1982e0d-7001-4379-ae1f-493f75fb8a75",
+      "path": "/register",
+      "errors": [],
+      "overflow": false,
+      "screenshotObserved": true,
+      "domRead": true
+    }
+  ],
+  "profiles": {
+    "baseline60": {
+      "node": "v24.14.1",
+      "platform": "win32",
+      "requestedObservations": 60,
+      "appended": 60,
+      "elapsedMs": 1170,
+      "ledgerBytes": 18370801,
+      "eventCacheJsonBytes": 18370802,
+      "sampledPeakHeapBytes": 42881288,
+      "error": null,
+      "limits": "Direct Store instrumentation with 10k-character synthetic records. No browser, screenshots or LLM; sampled heap depends on GC, not an RSS bound."
+    },
+    "corrected60": {
+      "node": "v24.14.1",
+      "platform": "win32",
+      "requestedObservations": 60,
+      "appended": 60,
+      "elapsedMs": 607,
+      "ledgerBytes": 625206,
+      "eventCacheJsonBytes": 15347,
+      "sampledPeakHeapBytes": 21029272,
+      "error": null,
+      "limits": "Direct Store instrumentation with 10k-character synthetic records. No browser, screenshots or LLM; sampled heap depends on GC, not an RSS bound."
+    },
+    "corrected500": {
+      "node": "v24.14.1",
+      "platform": "win32",
+      "requestedObservations": 500,
+      "appended": 500,
+      "elapsedMs": 24412,
+      "ledgerBytes": 5207728,
+      "eventCacheJsonBytes": 65025,
+      "sampledPeakHeapBytes": 148945392,
+      "error": null,
+      "limits": "Direct Store instrumentation with 10k-character synthetic records. No browser, screenshots or LLM; sampled heap depends on GC, not an RSS bound."
+    }
+  },
+  "limits": [
+    "Local synthetic fixtures only; no billed LLM call, real site/account or cloud deployment.",
+    "Eight injected interruption boundaries plus existing real SIGKILL after mutation; not an OS kill at every boundary.",
+    "Native CLI contracts tested with fake processes; no new live provider validation.",
+    "No Linux/remote CI, multi-day campaign, cognitive injection resilience or autonomous discovery measured.",
+    "Timeout sensitivity under concurrent Chromium load observed; test files serialized, explicit API concurrency tests retained.",
+    "Browser resource buffering, unknown PII/canvas and legacy artifact inventory remain limitations."
+  ]
+}
