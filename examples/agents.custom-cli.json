@@ -1,0 +1,21 @@
+{
+  "id":"custom-cli-site",
+  "origin":"https://example.com",
+  "entry":"/",
+  "reads":[{"path":"/","methods":["GET"]}],
+  "budget":{"maxCalls":10,"maxCostMicros":0,"reserveFraction":0.15,"quotaMaxAgeMs":30000},
+  "defaultAgent":"chosen-worker",
+  "agents":{
+    "chosen-worker":{
+      "kind":"json-cli",
+      "executable":"node",
+      "args":["/absolute/path/to/your-trusted-no-tools-wrapper.mjs","--model","{model}"],
+      "model":"your-explicit-model",
+      "noTools":true,
+      "billing":{"mode":"subscription"},
+      "quotaCommand":{"executable":"node","args":["/absolute/path/to/your-real-quota-reader.mjs"],"format":"json-cli"},
+      "timeoutMs":60000
+    }
+  },
+  "scenarios":[{"id":"inspect","agent":"chosen-worker","goal":"Inspect visible interface, no writes, one JSON action per observation.","steps":[]}]
+}

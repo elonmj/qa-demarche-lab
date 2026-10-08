@@ -1,0 +1,16 @@
+{
+  "id":"my-site-codex-agents",
+  "origin":"https://example.com",
+  "entry":"/",
+  "reads":[{"path":"/","methods":["GET","HEAD"]}],
+  "budget":{"maxCalls":12,"maxCostMicros":0,"reserveFraction":0.15,"quotaMaxAgeMs":30000,"maxDurationMs":600000},
+  "defaultAgent":"low-codex",
+  "agents":{
+    "low-codex":{"kind":"codex","model":"gpt-6-luna","billing":{"mode":"subscription"},"timeoutMs":60000},
+    "review-codex":{"kind":"codex","model":"gpt-6-sol","billing":{"mode":"subscription"},"timeoutMs":60000}
+  },
+  "scenarios":[
+    {"id":"mobile-exploration","agent":"low-codex","goal":"Explore visible interface in read-only mode, test one navigation hypothesis and finish with observed facts and limits.","persona":{"role":"first-time-visitor","constraints":"mobile, tired"},"steps":[],"assertions":[{"id":"no-overflow","path":"overflow","op":"equals","value":false}]},
+    {"id":"critical-review","agent":"review-codex","goal":"Review visible evidence critically; distinguish UI, business proof and untested server security. No writes.","steps":[]}
+  ]
+}

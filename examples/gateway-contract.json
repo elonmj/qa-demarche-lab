@@ -1,0 +1,8 @@
+{
+  "kind": "json-gateway",
+  "id": "my-chosen-provider",
+  "endpoint": "https://your-private-gateway.example/decision",
+  "quotaEndpoint": "https://your-private-gateway.example/quota",
+  "model": "your-explicit-model",
+  "maxCostMicros": 20000
+}

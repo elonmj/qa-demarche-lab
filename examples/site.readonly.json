@@ -1,0 +1,14 @@
+{
+  "id": "my-site-readonly",
+  "origin": "https://example.com",
+  "entry": "/",
+  "reads": [{ "path": "/", "methods": ["GET", "HEAD"] }],
+  "budget": { "maxCalls": 12, "maxCostMicros": 500000, "reserveFraction": 0.15, "quotaMaxAgeMs": 30000 },
+  "scenarios": [{
+    "id": "visitor",
+    "goal": "Vérifier les informations visibles et naviguer seulement vers les routes déclarées.",
+    "persona": { "role": "visitor", "constraints": "Téléphone, première visite" },
+    "steps": [{ "id": "observe", "action": "observe" }],
+    "assertions": [{ "id": "mobile-width", "path": "overflow", "op": "equals", "value": false }]
+  }]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "qa-demarche-lab",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Portable QA harness with selectable CLI agents and any-LLM orchestration",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "benchmark": "node fixtures/benchmark.mjs",
+    "demo": "node src/cli.mjs demo",
+    "check": "node src/cli.mjs check",
+    "agents": "node src/cli.mjs agents",
+    "live:antigravity": "node fixtures/live-cli.mjs"
+  },
+  "dependencies": { "playwright": "1.61.1" },
+  "files": ["src", "fixtures", "tests", "examples", "docs", "README.md", "AGENTS.md", "LICENSE", "package.json"]
+}

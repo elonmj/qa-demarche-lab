@@ -1,0 +1,16 @@
+{
+  "id": "my-site-cli-agents",
+  "origin": "https://example.com",
+  "entry": "/",
+  "reads": [{"path":"/","methods":["GET","HEAD"]}],
+  "budget": {"maxCalls":12,"maxCostMicros":0,"reserveFraction":0.15,"quotaMaxAgeMs":30000,"maxDurationMs":600000},
+  "defaultAgent": "low-gemini",
+  "agents": {
+    "low-gemini": {"kind":"antigravity","model":"gemini-3.8-flash-low","billing":{"mode":"subscription"},"timeoutMs":60000},
+    "review-gemini": {"kind":"antigravity","model":"gemini-3.1-pro-high","billing":{"mode":"subscription"},"timeoutMs":60000}
+  },
+  "scenarios": [
+    {"id":"mobile-exploration","agent":"low-gemini","goal":"Explore the visible interface without changing data. Check readability, navigation and visible prerequisites. Return one action at a time; finish with bounded observations and limits.","persona":{"role":"first-time-visitor","constraints":"mobile, tired, little technical knowledge"},"steps":[],"assertions":[{"id":"no-overflow","path":"overflow","op":"equals","value":false}]},
+    {"id":"independent-review","agent":"review-gemini","goal":"Review visible evidence critically. Distinguish UI evidence, unsupported claims and missing prerequisites. Do not certify persistence or server security from a toast or absent button.","persona":{"role":"skeptical-reviewer"},"steps":[]}
+  ]
+}
