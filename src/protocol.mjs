@@ -22,6 +22,7 @@ export async function handleRequest(engine,request){
       if(index===undefined||index<0)throw Error('Unknown authored step');
       if(engine.store.state.steps[`${scenario.id}/${p.step}`])throw Error('Step already attempted; reconcile only, no replay');
       for(const previous of scenario.steps.slice(0,index))if(engine.store.state.steps[`${scenario.id}/${previous.id}`]?.phase!=='observed')throw Error('Preceding preparation not observed; no submission');
+      await engine.ensureRole(scenario);
       const step=scenario.steps[index];const verdict=await engine.execute(scenario,step,await engine.resolveStep(step));engine.report();return {verdict,observation:engine.view};
     }
     case 'act': {

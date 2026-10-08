@@ -63,6 +63,8 @@ Send one JSON request per stdin line. Read one JSON reply per stdout line. No ne
 
 For writes use `step` against a reviewed authored scenario, never `act`. EOF closes the browser and saves a report. After process kill, verify process exit and unlock, then reconcile; authored preparation interrupted halfway requires review. A protocol error produces JSON error and preserves evidence. An error does not mean a previous submitted operation failed.
 
+An authored submission must declare its browser action; it cannot ask the worker to invent the submitting gesture. Both RPC and direct Engine calls enforce observed preceding preparations in the current browser session. Mission roles apply before resolving controls and before independent probes. Configuration rejects normalized/ambiguous endpoint paths, overlapping safe-read/write scopes, duplicate write scopes, malformed assertions and unbounded timing/action caps before opening a run. No automatic migration of an existing campaign's configuration is performed.
+
 ## Current CLI references
 
 [Antigravity headless](https://www.antigravity.google/docs/cli/headless/), [Gemini headless](https://geminicli.com/docs/cli/headless/), [Gemini settings/tool allowlists](https://geminicli.com/docs/reference/configuration/), [Codex noninteractive](https://learn.chatgpt.com/docs/non-interactive-mode), [Codex commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli). Consulted 8 October 2026. Installed versions/flags differ; unsupported output or tool exposure fails closed. Model availability is verified by the owner's CLI/account, never silently substituted.

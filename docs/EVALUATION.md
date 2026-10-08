@@ -4,6 +4,8 @@ Windows, Node 24.14.1, Playwright 1.61.1, Chromium installé. Deux serveurs HTTP
 
 ## Résultats mesurés
 
+Renforcement local après cette livraison : **63 tests sur 63 réussis**, zéro ignoré, en 62 019,565 ms. Les 21 régressions ajoutées couvrent validation, secrets échappés, store fermé/panne/écriture partielle, rôles RPC et probes, préparations de session, quota défaillant, preuves positives et codes de sortie avec fermeture malgré panne du rapport. Démo et syntaxe passent ; benchmark 8/8, zéro rejeu non autorisé/faux positif sur ces cas. Cette vérification est locale Windows ; aucun nouvel essai LLM, résultat Linux ou résultat CI distant revendiqué. Détails, sorties et limites dans [HARDENING.md](HARDENING.md).
+
 Version 0.2 : **42 tests sur 42 réussis**, zéro ignoré, en 43 864 ms sur le poste de développement, puis 44 332 ms dans une copie indépendante avec ses propres dépendances. Contrôle de syntaxe et démo CLI également réussis ; démo `save-basic: confirmed`. Les nouveaux contrats couvrent parsers CLI, processus réel, quotas Codex, choix de workers et protocole JSON-RPC dans un vrai processus enfant. Aucun import du dépôt parent nécessaire.
 
 Clone public neuf : `npm ci --ignore-scripts`, `npm run check` et `npm run demo` réussis, arbre Git propre. La CI est configurée pour syntaxe, tests et démo sur Windows et Linux. Sa première exécution n'a démarré aucun job, pour une restriction externe du compte GitHub : aucune validation Linux ni CI verte revendiquée. [Exécution initiale](https://github.com/elonmj/qa-demarche-lab/actions/runs/37807627028).

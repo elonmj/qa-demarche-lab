@@ -16,6 +16,8 @@ flowchart LR
 
 `store.mjs` gère lock, chaîne d'empreintes et journal fsync. Le journal est autoritaire ; pas de cache réinitialisant les compteurs. Troncature/configuration différente : arrêt et revue. Les empreintes détectent une altération accidentelle ; ce n'est pas une signature contre un administrateur hostile. Limite du journal 64 Mio ; un seul processus par campagne.
 
+Le store vérifie la propriété du lock avant chaque réservation/écriture. Fermeture ou erreur d'append : cet objet ne peut plus agir, même si le filesystem redevient disponible. Les écritures partielles sont terminées avant fsync ; une erreur ne relance aucun geste. Les ressources navigateur/fixture sont fermées même si l'écriture du rapport échoue.
+
 `policy.mjs` décide à partir des origines, chemins exacts, méthodes, quotas de requêtes et corps consentis. GET est un droit déclaré, pas une preuve d'absence d'effet. Le propriétaire doit connaître ses endpoints. Les POST GraphQL de lecture sont refusés dans cette version ; pas d'exception implicite. Par défaut 500 requêtes admises persistantes, configurable explicitement. Redirects, service workers, WebSockets, téléchargements et réseau hors origine sont bloqués dans l'adaptateur.
 
 `browser.mjs` produit DOM/états, captures masquées et traces réseau réduites sans headers/corps. Références = handles + snapshot + signature ; contrôle remplacé, caché, occlus ou désactivé : refus. Gestes natifs click/fill/select/slider/upload/scroll/navigation. Upload = contenu fourni par propriétaire, aucun chemin choisi par modèle. Captures masquent tous les champs et les sélecteurs sensibles ; le DOM exclut ces sélecteurs et retire les secrets connus. Les captures et le DOM restent privés : données inconnues et informations d'entreprise ne sont pas anonymisées magiquement. Traces Playwright brutes désactivées car elles peuvent contenir sessions et corps sensibles.
@@ -42,6 +44,10 @@ Le refus avant requête est visible et distinct du toast de réussite dans la pr
 ## Authentification et rôles
 
 Sessions injectées en mémoire via `privateOptions.roles[role] = {storageState, headers, probeHeaders}` par un bootstrap de confiance utilisant Playwright. Rien n'est fourni au modèle ; cookies/headers/localStorage injectés sont ajoutés aux secrets à masquer. Chaque rôle change de contexte Chromium ; la campagne conserve le même Store et budget. Un login interactif/SSO/MFA automatique n'est pas livré. La CLI publique ne charge aucun fichier de session ni .env ; un intégrateur utilise l'API pour ses comptes de recette. Les probes ont une session indépendante (`probeHeaders`) et doivent être autorisées en lecture. Pas d'export de storageState dans les preuves.
+
+Le rôle explicite de mission est appliqué aux scénarios, étapes RPC, explorations, contrôles indépendants et rapprochements. Sans rôle de mission, `config.role` ou le rôle du premier `Engine.start(role)` fait référence. Chaque contexte reçoit un ID de session ; une soumission exige ses préparations observées dans cette même session et le geste exact écrit par le propriétaire. Recréer une modale à la main ne réhabilite pas une préparation perdue. Les préparations d'anciens journaux sans ID de session restent bloquées ; leurs intentions déjà soumises peuvent toujours être rapprochées.
+
+Les secrets connus sont masqués sur les chaînes et clés JSON après décodage, du plus long au plus court ; les caractères échappés ne cassent pas le document. Cela n'identifie toujours pas les données personnelles inconnues. Une panne de lecteur de quota ouvre le même circuit persistant qu'une panne de décision ; zéro appel modèle n'est réservé lorsque la lecture échoue. Le délai de campagne est revérifié après la lecture du quota et avant toute soumission.
 
 ## Contenu hostile
 

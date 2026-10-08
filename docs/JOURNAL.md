@@ -1,0 +1,6 @@
+- [H1] src/policy.mjs:3 — validation des plafonds/chemins/assertions/consentements et rejet des corps JSON non objets — npm test — 63/63, profils publiés valides.
+- [H2] src/policy.mjs:106 — masquage JSON décodé, secrets chevauchants/échappés/imbriqués — npm test — canaries absents du journal et des rapports.
+- [H3] src/store.mjs:42 — propriété du lock, arrêt après fermeture/panne, complétion des écritures partielles — npm test — réouverture valide, aucune réservation après fermeture/panne.
+- [H4] src/engine.mjs:30 — rôles des missions, session de préparation, geste soumis exact, circuit quota et deadline revérifiée — npm test — RPC/Chromium et reprise sans soumission détournée.
+- [H5] src/engine.mjs:197 — deux lectures et scopes conservés par contrôle, déduplication par mission — npm test — preuves des succès conservées, défauts de missions distinctes séparés.
+- [H6] src/report.mjs:3 — codes CLI pour défaut/prérequis/incertitude et fermeture garantie malgré panne de rapport — npm test ; npm run demo ; npm run benchmark ; node fixtures/visual-qa.mjs — 63/63, démo confirmée, benchmark 8/8, quatre captures sans erreur console/débordement.
