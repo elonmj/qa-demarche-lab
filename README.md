@@ -80,6 +80,10 @@ Le modèle voit seulement la mission, le persona, les états factuels et une obs
 
 ## Lire le rapport
 
+Chaque mission indique son rôle, son état et sa raison d'arrêt : `not-run`, `observed`, `bounded`, `blocked` ou `interrupted`, avec appels du passage et dernière preuve. Les huit derniers gestes de la mission sont transmis au worker sans recopier les valeurs saisies. Les tentatives restent distinctes des effets observés, même après reprise. Les limites d'états répétés sont propres à chaque mission/rôle.
+
+Une session privée nommée absente provoque un arrêt sans repli anonyme ; `visitor` reste disponible sans bootstrap. Les contrôles portant le même nom dans plusieurs rôles gardent leurs preuves distinctes. `npm test` exécute les fichiers séquentiellement pour borner les navigateurs et processus simultanés.
+
 `REPORT.md` donne état, contrôles, problème/reproduction/attendu/observé/impact ; `report.json` contient les lectures indépendantes, valeurs et périmètres. `uncertain` = relecture/revue, jamais bouton « réessayer ». Les captures sont masquées, les corps réseau et sessions ne sont pas enregistrés. Conserver les artifacts privés et les supprimer selon son besoin ; la rétention automatique locale n'est pas implémentée.
 
 Chaque contrôle indépendant conserve ses deux lectures dans `coverage[].samples`, avec les IDs de preuve, valeurs attendues/observées et scopes disponibles, même lorsqu'il réussit ou que sa lecture est indisponible. Deux missions différentes restent deux contextes de défaut distincts.

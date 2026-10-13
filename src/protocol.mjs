@@ -28,7 +28,7 @@ export async function handleRequest(engine,request){
   switch(request.method){
     case 'initialize': return {protocol:'qa-lab/1',label:'Agents simulating a human QA approach',methods:['observe','status','mission','step','act','reconcile','report','close'],agents:Object.keys(engine.config.agents || {}),missions:engine.config.scenarios.map(s=>({id:s.id,agent:s.agent || engine.config.defaultAgent || null,writeConsent:!!s.writeConsent?.confirmed}))};
     case 'observe': return engine.observe();
-    case 'status': return {calls:engine.store.state.calls,reservedMicros:engine.store.state.reservedMicros,workers:engine.store.state.workerUsage || {},holds:engine.store.state.holds,intents:Object.values(engine.store.state.intents).map(i=>({id:i.id,scenario:i.scenario,phase:i.phase})),providerFault:engine.store.state.providerFault || null};
+    case 'status': return {calls:engine.store.state.calls,reservedMicros:engine.store.state.reservedMicros,workers:engine.store.state.workerUsage || {},missions:engine.store.state.missions || {},holds:engine.store.state.holds,intents:Object.values(engine.store.state.intents).map(i=>({id:i.id,scenario:i.scenario,phase:i.phase})),providerFault:engine.store.state.providerFault || null};
     case 'mission': {
       if(!scenario)throw Error('Unknown authored mission');
       const mode=p.mode || 'authored';

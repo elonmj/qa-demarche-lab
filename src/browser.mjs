@@ -14,6 +14,7 @@ export class BrowserAdapter {
     this.errors = []; this.network = []; this.refs = []; this.snapshotId = null;
   }
   async start(role = 'visitor') {
+    if (role !== 'visitor' && !Object.hasOwn(this.privateOptions.roles || {},role)) throw Error('Private session for requested role unavailable; no anonymous fallback');
     this.role = role;
     this.browser = await chromium.launch({ headless: true });
     this.context = await this.browser.newContext({ viewport: this.config.viewport || { width: 390, height: 844 }, serviceWorkers: 'block', acceptDownloads:false, storageState: this.privateOptions.roles?.[role]?.storageState, extraHTTPHeaders: this.privateOptions.roles?.[role]?.headers });
