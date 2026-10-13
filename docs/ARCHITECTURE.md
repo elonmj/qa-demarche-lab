@@ -16,6 +16,10 @@ flowchart LR
 
 `store.mjs` gère lock, chaîne d'empreintes et journal fsync. Le journal est autoritaire ; pas de cache réinitialisant les compteurs. Troncature/configuration différente : arrêt et revue. Les empreintes détectent une altération accidentelle ; ce n'est pas une signature contre un administrateur hostile. Limite du journal 64 Mio ; un seul processus par campagne.
 
+Depuis la [revue indépendante](ADVERSARIAL-REVIEW.md), les nouvelles lignes de format 2 enregistrent des deltas et les listes de preuves appendent leurs suffixes. Les snapshots historiques restent lisibles ; un ancien lecteur refuse la sentinelle de format au lieu de recréer les compteurs. Le cache d'événements garde seulement 256 métadonnées, l'historique reste sur disque. Les observations sont des résumés vers les artifacts privés. Intentions et réservations restent fsync avant geste/appel.
+
+L'API Engine refuse les appels concurrents, y compris changement de rôle et fermeture pendant une opération. Une réservation worker non suivie d'une réponse validée laisse `pendingWorker` et empêche une nouvelle décision après reprise. Quota/décision/probe reçoivent une annulation et une borne temporelle ; le code externe qui ignore le signal n'est pas physiquement isolé par cette API.
+
 Le store vérifie la propriété du lock avant chaque réservation/écriture. Fermeture ou erreur d'append : cet objet ne peut plus agir, même si le filesystem redevient disponible. Les écritures partielles sont terminées avant fsync ; une erreur ne relance aucun geste. Les ressources navigateur/fixture sont fermées même si l'écriture du rapport échoue.
 
 `policy.mjs` décide à partir des origines, chemins exacts, méthodes, quotas de requêtes et corps consentis. GET est un droit déclaré, pas une preuve d'absence d'effet. Le propriétaire doit connaître ses endpoints. Les POST GraphQL de lecture sont refusés dans cette version ; pas d'exception implicite. Par défaut 500 requêtes admises persistantes, configurable explicitement. Redirects, service workers, WebSockets, téléchargements et réseau hors origine sont bloqués dans l'adaptateur.

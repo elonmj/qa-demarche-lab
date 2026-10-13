@@ -1,5 +1,7 @@
 # Renforcement du harnais — 8 octobre 2026
 
+Une [seconde revue indépendante](ADVERSARIAL-REVIEW.md) reproduit des défauts restant après cette PR. Les résultats ci-dessous sont historiques ; les dernières mesures et régressions sont dans [review-evidence.json](review-evidence.json). Aucune garantie des tests H1–H6 n'est interprétée comme une absence exhaustive de défauts.
+
 Périmètre : harnais local, fixtures synthétiques, aucun appel LLM facturé, aucune donnée Colgate.
 
 - [x] H1 — Valider les chemins, contraintes JSON, assertions et plafonds avant ouverture de campagne ; refuser les corps JSON non objets.

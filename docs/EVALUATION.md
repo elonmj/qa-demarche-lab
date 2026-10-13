@@ -1,5 +1,7 @@
 # Évaluation reproductible — 8 octobre 2026
 
+La [revue indépendante](ADVERSARIAL-REVIEW.md) ajoute 24 cas à seeds fixes (17, 2026, 8675309), vérités cachées au décideur scripté et matrice de faux positifs/faux négatifs calculée. Six défauts de total, dix-huit contrôles négatifs (dont douze prérequis/lectures instables) : zéro faux positif observé sur ces seuls cas. `npm run benchmark` les exécute avec les huit parcours existants. Il s'agit toujours de fixtures locales et non d'une mesure d'autonomie LLM. Les chiffres ci-dessous restent les mesures historiques des versions précédentes.
+
 Windows, Node 24.14.1, Playwright 1.61.1, Chromium installé. Deux serveurs HTTP indépendants : atelier de commandes et registre documentaire. Tout est synthétique ; aucun accès, donnée ou preuve d'une application réelle utilisé.
 
 ## Résultats mesurés

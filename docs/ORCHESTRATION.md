@@ -67,4 +67,8 @@ An authored submission must declare its browser action; it cannot ask the worker
 
 ## Current CLI references
 
+Pour les nouvelles écritures, déclarer `scenario.operationId` et `probe.correlation = {path,op:"equals",value:operationId}` (ou `includes` sur une liste exacte de références). La lecture préalable doit être disponible et la référence absente ; le corps consenti doit utiliser cette même référence. `scope` est une annotation ; utiliser `scopeChecks` pour vérifier le compte/unité/date dans la réponse. Une mismatch de ces checks bloque un finding produit. Voir [migration, limites et preuves](ADVERSARIAL-REVIEW.md).
+
+Après une interruption worker, `pendingWorker` n'autorise ni autre appel ni fallback. Ancienne configuration sans corrélation : `reconcile` et `report` restent disponibles, sans nouvelle soumission ; une preuve non corrélée ne devient pas un nouveau verdict confirmé. Les extensions d'adaptateurs reçoivent `{signal}` sur `quota`, `decide` et `probe`.
+
 [Antigravity headless](https://www.antigravity.google/docs/cli/headless/), [Gemini headless](https://geminicli.com/docs/cli/headless/), [Gemini settings/tool allowlists](https://geminicli.com/docs/reference/configuration/), [Codex noninteractive](https://learn.chatgpt.com/docs/non-interactive-mode), [Codex commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli). Consulted 8 October 2026. Installed versions/flags differ; unsupported output or tool exposure fails closed. Model availability is verified by the owner's CLI/account, never silently substituted.

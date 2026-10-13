@@ -7,6 +7,7 @@ import { chromium } from 'playwright';
 import { Engine } from '../src/engine.mjs';
 import { ScriptedProvider } from '../src/providers.mjs';
 import { startShop,startRegistry,shopConfig,registryConfig } from './sites.mjs';
+import { seededEvaluation } from './seeded-evaluation.mjs';
 
 const root=path.resolve(fileURLToPath(new URL('..',import.meta.url)));
 const directory=path.join(root,'artifacts',`benchmark-${Date.now()}`);fs.mkdirSync(directory,{recursive:true});
@@ -43,6 +44,9 @@ try{
 }finally{await engine?.close();await site.close();}
 const totals=Object.fromEntries(['qa-lab','playwright-authored'].map(name=>{const selected=rows.filter(r=>r.implementation===name);return[name,{cases:selected.length,correct:selected.filter(r=>r.correct).length,durationMs:selected.reduce((s,r)=>s+r.durationMs,0),llmCalls:0,llmCostMicros:0,unauthorizedRepeats:selected.reduce((s,r)=>s+r.unauthorizedRepeats,0),falsePositives:0}];}));
 const results={date:'2026-10-08',playwrightVersion:'1.61.1',node:process.version,platform:process.platform,totals,rows,knownSyntheticDefects:[{id:'false-toast',detected:'UI success without request or independent record during bounded window',evidence:'hallucination/report.json'},{id:'wrong-total',detected:'21 != 12+8',evidence:'registry-approve/report.json'},{id:'closed-edit',detected:'definitive document changes from 2 to 3 pages',evidence:'registry-edit/report.json'}],limits:['Zero LLM calls: deterministic authored scenarios and fake provider, not model performance.','Single local run; durations descriptive, no significance or SaaS quality ranking.','Seeded defects known in advance; no real-site recall estimate.','Playwright baseline has same oracle; no built-in durable campaign policy supplied in this baseline.']};
+results.seeded=await seededEvaluation(path.join(directory,'seeded'));
+assert.equal(results.seeded.metrics.falsePositives,0);assert.equal(results.seeded.metrics.falseNegatives,0);
 fs.writeFileSync(path.join(directory,'RESULTS.json'),JSON.stringify(results,null,2));
 fs.writeFileSync(path.join(directory,'RESULTS.md'),`# Mesure synthétique — 8 octobre 2026\n\n| Implémentation | Corrects | Durée ms | Appels modèle | Rejeux non autorisés | Faux positifs |\n|---|---:|---:|---:|---:|---:|\n${Object.entries(totals).map(([name,t])=>`| ${name} | ${t.correct}/${t.cases} | ${t.durationMs} | 0 | ${t.unauthorizedRepeats} | 0 |`).join('\n')}\n\nTrois défauts synthétiques observés : faux toast, total erroné, modification après validation définitive. Deux défauts du registre produisent des fiches de contrôles avec lectures indépendantes ; le faux toast reste preuve UI avec absence de persistance dans une fenêtre bornée.\n\n${results.limits.map(l=>'- '+l).join('\n')}\n`);
-console.log(JSON.stringify({directory,totals},null,2));
+fs.appendFileSync(path.join(directory,'RESULTS.md'),`\n## Évaluation à seeds fixes\n\nSeeds : ${results.seeded.seeds.join(', ')} ; ${results.seeded.rows.length} cas.\n\n${JSON.stringify(results.seeded.metrics)}\n\n${results.seeded.limits.map(l=>'- '+l).join('\n')}\n`);
+console.log(JSON.stringify({directory,totals,seeded:results.seeded.metrics,seeds:results.seeded.seeds},null,2));

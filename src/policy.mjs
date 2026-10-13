@@ -1,6 +1,7 @@
 import { safeId } from './store.mjs';
+import { isDeepStrictEqual } from 'node:util';
 
-export function validateConfig(config) {
+export function validateConfig(config, {readbackOnly=false} = {}) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw Error('Configuration object required');
   safeId(config.id);
   for(const [id,definition] of Object.entries(config.agents || {})){safeId(id);if(!definition.kind)throw Error('Agent provider kind required');}
@@ -33,6 +34,14 @@ export function validateConfig(config) {
       if ((scenario.probes?.includes(probe) && !['confirmed', 'rejected'].includes(probe.verdict)) || !probe.path || !Array.isArray(probe.checks) || !probe.checks.length) throw Error('Probe requires explicit checks');
       if (!config.reads.some(r => r.path === probe.path && r.methods.includes('GET'))) throw Error('Probe not declared as safe read');
       for (const check of probe.checks) validateCheck(check);
+      if (probe.scopeChecks !== undefined) {
+        if(!Array.isArray(probe.scopeChecks) || !probe.scopeChecks.length)throw Error('Explicit scope checks required');
+        for(const check of probe.scopeChecks)validateCheck(check);
+      }
+      if(!readbackOnly && scenario.probes?.includes(probe) && scenario.writeConsent) {
+        if(typeof scenario.operationId !== 'string' || !scenario.operationId.length || !probe.correlation || !['equals','includes'].includes(probe.correlation.op) || probe.correlation.value !== scenario.operationId)throw Error('Business probe requires explicit operation correlation');
+        validateCheck(probe.correlation);
+      }
       if (probe.id !== undefined) safeId(probe.id);
     }
     for (const check of scenario.assertions || []) validateCheck(check);
@@ -46,8 +55,11 @@ export function validateConfig(config) {
   }
   if (new Set((config.scenarios || []).map(s=>s.id)).size !== (config.scenarios || []).length) throw Error('Duplicate scenario identifier');
   if (config.maxNetworkRequests !== undefined && (!Number.isSafeInteger(config.maxNetworkRequests) || config.maxNetworkRequests < 1)) throw Error('Invalid network budget');
+  for(const [name,max] of [['maxObservations',10000],['maxArtifactBytes',1024*1024*1024]])if(config[name]!==undefined && (!Number.isSafeInteger(config[name])||config[name]<1||config[name]>max))throw Error(`Invalid ${name}`);
+  if(config.viewport && (!Number.isSafeInteger(config.viewport.width)||!Number.isSafeInteger(config.viewport.height)||config.viewport.width<1||config.viewport.height<1||config.viewport.width>4096||config.viewport.height>4096))throw Error('Bounded viewport required');
   for (const name of ['maxExternalActions','maxRepeatedStates']) if (config[name] !== undefined && (!Number.isSafeInteger(config[name]) || config[name] < 1)) throw Error(`Invalid ${name}`);
   if(config.budget?.maxDurationMs!==undefined&&(!Number.isSafeInteger(config.budget.maxDurationMs)||config.budget.maxDurationMs<1))throw Error('Invalid deadline');
+  if(config.budget?.workerTimeoutMs!==undefined&&(!Number.isSafeInteger(config.budget.workerTimeoutMs)||config.budget.workerTimeoutMs<1||config.budget.workerTimeoutMs>120000))throw Error('Invalid worker timeout');
   if (!config.budget || !Number.isSafeInteger(config.budget.maxCalls) || config.budget.maxCalls < 0 || !Number.isSafeInteger(config.budget.maxCostMicros) || config.budget.maxCostMicros < 0 || !Number.isFinite(config.budget.reserveFraction) || !(config.budget.reserveFraction >= 0 && config.budget.reserveFraction < 1) || !Number.isSafeInteger(config.budget.quotaMaxAgeMs) || config.budget.quotaMaxAgeMs < 1) throw Error('Invalid persistent budget');
   return config;
 }
@@ -58,6 +70,16 @@ function validateCheck(check) {
   if (!check || typeof check.path !== 'string' || !check.path.length || !['equals','includes','sum'].includes(check.op) || !Object.hasOwn(check,'value')) throw Error('Explicit assertion path, operation and value required');
   if (check.op === 'includes' && typeof check.value !== 'string') throw Error('includes requires string expectation');
   if (check.op === 'sum' && !Number.isFinite(check.value)) throw Error('sum requires finite expectation');
+  if(!jsonValue(check.value))throw Error('JSON-compatible finite assertion expectation required');
+}
+function jsonValue(value,depth=0,seen=new Set()) {
+  if(depth>64)return false;
+  if(value===null || typeof value==='string' || typeof value==='boolean')return true;
+  if(typeof value==='number')return Number.isFinite(value);
+  if(!value || typeof value!=='object' || seen.has(value))return false;
+  if(!Array.isArray(value) && ![Object.prototype,null].includes(Object.getPrototypeOf(value)))return false;
+  seen.add(value);
+  const result=Object.values(value).every(v=>jsonValue(v,depth+1,seen));seen.delete(value);return result;
 }
 function validateEndpoint(endpoint, read) {
   validatePath(endpoint?.path);
@@ -86,8 +108,9 @@ export class Policy {
     }
     const u = new URL(url), intent = this.active && this.store.state.intents[this.active];
     if (u.origin !== this.config.origin || u.search || u.username || u.password || !intent || intent.phase !== 'attempted') return { allow: false, reason: 'No active scoped consent' };
+    if(this.config.budget.maxDurationMs && Date.now()-Date.parse(this.store.state.createdAt)>=this.config.budget.maxDurationMs)return {allow:false,reason:'Campaign deadline reached; write denied'};
     const index = intent.endpoints.findIndex(e => e.path === u.pathname && e.methods.includes(method));
-    const endpoint = intent.endpoints[index];
+    const endpoint = this.config.scenarios.find(s=>s.id===intent.scenario)?.writeConsent?.endpoints[index] || intent.endpoints[index];
     if (!endpoint || (intent.requests[index] || 0) >= endpoint.maxRequests) return { allow: false, reason: 'Endpoint or request cap denied' };
     if (endpoint.bodyChecks?.length || endpoint.allowedFields) {
       let data;
@@ -126,8 +149,8 @@ export function readPath(value, key) {
   return value;
 }
 export function checkValue(actual, check) {
-  if (check.op === 'equals') return JSON.stringify(actual) === JSON.stringify(check.value);
-  if (check.op === 'includes') return typeof actual === 'string' && actual.includes(check.value);
+  if (check.op === 'equals') return isDeepStrictEqual(actual,check.value);
+  if (check.op === 'includes') return (typeof actual === 'string' || Array.isArray(actual)) && actual.includes(check.value);
   if (check.op === 'sum') return Array.isArray(actual) && actual.every(Number.isFinite) && actual.reduce((a,b) => a+b,0) === check.value;
   throw Error('Unknown assertion operation');
 }

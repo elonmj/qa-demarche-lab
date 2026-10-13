@@ -24,18 +24,18 @@ try{
   }else if(command==='unlock'){
     if(!configPath)throw Error('Run directory required');unlock(configPath);console.log('Dead process lock removed; intents preserved');
   }else if(command==='report'){
-    const config=validateConfig(JSON.parse(fs.readFileSync(configPath,'utf8'))),store=new Store(outputPath,config);
+    const config=validateConfig(JSON.parse(fs.readFileSync(configPath,'utf8')),{readbackOnly:true}),store=new Store(outputPath,config);
     try{const {writeReport}=await import('./report.mjs');writeReport(store,config);console.log(path.join(store.directory,'REPORT.md'));}finally{store.close();}
   }else if(['run','explore','reconcile','demo'].includes(command)){
     let fixture,engine;
     try{
-      const config=command==='demo'?(fixture=await startShop(),shopConfig(fixture.origin,'basic','demo')):validateConfig(JSON.parse(fs.readFileSync(configPath,'utf8')));
+      const config=command==='demo'?(fixture=await startShop(),shopConfig(fixture.origin,'basic','demo')):validateConfig(JSON.parse(fs.readFileSync(configPath,'utf8')),{readbackOnly:command==='reconcile'});
       const directory=command==='demo'?path.join(root,'artifacts',`demo-${Date.now()}`):outputPath;
       if(!directory)throw Error('Output directory required');
       const {provider,agents}=createAgents(config);
       if(command==='explore'&&!config.provider&&!config.agents)throw Error('Exploration requires explicit worker configuration');
       const secrets=[process.env.QA_LAB_GATEWAY_TOKEN].filter(Boolean);
-      engine=new Engine(config,directory,provider,{agentProviders:agents,privateOptions:{secrets}});await engine.start(config.role || 'visitor');
+      engine=new Engine(config,directory,provider,{readbackOnly:command==='reconcile',agentProviders:agents,privateOptions:{secrets}});await engine.start(config.role || 'visitor');
       for(const scenario of config.scenarios){
         const verdict=command==='explore'?await engine.explore(scenario):command==='reconcile'?await engine.reconcile(scenario):await engine.runScenario(scenario);
         console.log(`${scenario.id}: ${verdict}`);
