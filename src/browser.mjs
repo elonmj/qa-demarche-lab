@@ -94,6 +94,18 @@ export class BrowserAdapter {
     fs.writeFileSync(path.join(this.store.directory,`observation-${view.id}.json`), json,{mode:0o600});
     return view;
   }
+  async retainReference(decision) {
+    if (decision.snapshotId !== this.snapshotId) throw Error('Stale preparation snapshot');
+    const ref = this.refs[decision.ref];
+    if (!ref) throw Error('Preparation control unavailable');
+    return {handle:await ref.handle.evaluateHandle(e=>e),signature:ref.signature,url:this.page.url()};
+  }
+  async sameReference(binding, decision) {
+    if (this.page.url() !== binding.url || (decision && decision.snapshotId !== this.snapshotId)) return false;
+    const refs = decision ? [this.refs[decision.ref]].filter(Boolean) : this.refs;
+    const handles = refs.filter(r=>r.signature===binding.signature && !r.descriptor.disabled).map(r=>r.handle);
+    return binding.handle.evaluate((e,handles)=>e.isConnected && handles.includes(e),handles).catch(()=>false);
+  }
   async act(decision) {
     this.store.assertOpen();
     if (decision.action === 'navigate') {

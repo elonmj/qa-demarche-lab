@@ -10,16 +10,18 @@ import { writeReport } from './report.mjs';
 export class Engine {
   constructor(config, directory, provider, options = {}) {
     this.readbackOnly=options.readbackOnly===true;
+    this.clock = options.clock || (() => Date.now());
     this.config = JSON.parse(JSON.stringify(validateConfig(config,{readbackOnly:this.readbackOnly}))); this.provider = provider;
     this.store = new Store(directory, this.config);
-    this.policy = new Policy(this.config,this.store);
+    this.policy = new Policy(this.config,this.store,this.clock);
     try {
       this.browser = options.browser || new BrowserAdapter(this.config,this.policy,this.store,options.privateOptions);
       this.browser.redactor = new Redactor([...(this.browser.redactor?.secrets || []),...(options.privateOptions?.secrets || []),provider?.token,...Object.values(options.agentProviders || {}).map(p=>p.token)].filter(Boolean));
     } catch(error) { this.store.close(); throw error; }
-    this.clock = options.clock || (() => Date.now());
+    this.defaultRole = this.store.state.defaultRole;
     this.agentProviders=options.agentProviders || {};
     this.operations = new AsyncLocalStorage();
+    this.preparedSubmissions = new Map();
   }
   trustedScenario(scenario) {
     const authored = this.config.scenarios.find(s=>s.id===scenario.id);
@@ -28,26 +30,39 @@ export class Engine {
   }
   async start(role = this.config.role || this.defaultRole || 'visitor') {
     this.store.assertOpen();
+    await this.#releasePreparations();
     const hadSession = this.sessionId;
     this.sessionId = null; this.role = null; this.view = null;
     if (hadSession) await this.browser.close();
     try { await this.browser.start(role); this.store.assertOpen(); }
     catch (error) { await this.browser.close(); throw error; }
     this.defaultRole ??= role;
+    if (!this.store.state.defaultRole) {
+      this.store.state.defaultRole = this.defaultRole;
+      this.store.commit('bootstrap-role-established', {role:this.defaultRole});
+    }
     this.role = role; this.browser.role = role; this.sessionId = randomUUID();
     if(this.readbackOnly)return null;
     return this.observe();
   }
   async ensureRole(scenario) {
     this.store.assertOpen();
-    const role = scenario.role || this.config.role || this.defaultRole || 'visitor';
+    const role = this.missionRole(scenario);
     if (this.role !== role) await this.start(role);
+  }
+  missionRole(scenario) {
+    const intent = Object.values(this.store.state.intents).find(i=>i.scenario===scenario.id);
+    return intent?.role || scenario.role || this.config.role || this.store.state.missions?.[scenario.id]?.role || this.defaultRole || 'visitor';
+  }
+  async #releasePreparations() {
+    for (const binding of this.preparedSubmissions.values()) await binding.handle.dispose().catch(()=>{});
+    this.preparedSubmissions.clear();
   }
   async trackMission(scenario, mode, run) {
     scenario = this.trustedScenario(scenario);
     this.store.state.missions ||= {};
     const mission = this.store.state.missions[scenario.id] = {
-      mode, role: scenario.role || this.config.role || this.defaultRole || 'visitor', status: 'running',
+      mode, role: this.missionRole(scenario), status: 'running',
       startedAt: new Date().toISOString(), callsBefore: this.store.state.calls
     };
     this.store.commit('mission-started', { scenario: scenario.id, mode });
@@ -89,6 +104,11 @@ export class Engine {
     this.store.commit('observation-reserved');
     const view = await this.browser.observe();
     this.store.assertOpen();
+    for (const [key,binding] of this.preparedSubmissions) {
+      if (!await this.browser.sameReference(binding)) {
+        await binding.handle.dispose().catch(()=>{}); this.preparedSubmissions.delete(key);
+      }
+    }
     this.store.state.observations.push({id:view.id,path:view.path,role:view.role,screenshot:view.screenshot,errors:view.errors,overflow:view.overflow});
     const signature = hash([view.path,view.text,view.elements.map(e=>[e.name,e.value,e.disabled])]);
     this.store.state.visits[signature] = (this.store.state.visits[signature] || 0) + 1;
@@ -144,6 +164,12 @@ export class Engine {
     if(step.submit&&!scenario.steps?.some(s=>hash(s)===hash(step)))throw Error('Submission step outside authored configuration');
     const key = `${scenario.id}/${step.id}`;
     if (this.store.state.steps[key]) throw Error('Step already attempted; no automatic replay');
+    const authoredStep = scenario.steps?.find(s=>s.id===step.id);
+    if (authoredStep && hash(authoredStep)!==hash(step)) throw Error('Step differs from authored configuration');
+    if (authoredStep?.action && !step.submit) {
+      const authored = await this.resolveStep(step);
+      if (['action','ref','snapshotId','text','value','path'].some(key=>decision[key]!==authored[key])) throw Error('Preparation decision differs from authored action');
+    }
     if (decision.intent && !step.submit) throw Error('Model cannot grant consent');
     if (step.submit) {
       this.checkDeadline();
@@ -152,16 +178,24 @@ export class Engine {
       const index = scenario.steps.findIndex(s=>s.id===step.id);
       for (const previous of scenario.steps.slice(0,index)) {
         const recorded = this.store.state.steps[`${scenario.id}/${previous.id}`];
-        if (recorded?.phase !== 'observed' || recorded.sessionId !== this.sessionId) throw Error('Preceding preparation not observed in current browser session; review required');
+        if (recorded?.phase !== 'observed' || recorded.sessionId !== this.sessionId || recorded.authored !== true) throw Error('Preceding preparation not observed in current browser session; review required');
       }
+      // All preparation must be the uninterrupted suffix of the gesture history.
+      // A recreated modal in the same session does not restore the old preparation.
+      const preparationKeys = scenario.steps.slice(0,index).map(s=>`${scenario.id}/${s.id}`);
+      if (index && hash(Object.keys(this.store.state.steps).slice(-index)) !== hash(preparationKeys)) throw Error('Preparation continuity lost; review required, no new submission');
       const authored = await this.resolveStep(step);
       this.store.assertOpen(); this.checkDeadline();
       if (['action','ref','snapshotId','text','value','path'].some(key=>decision[key]!==authored[key])) throw Error('Submission decision differs from authored action');
+      if (index && ['click','fill','select','slider','upload'].includes(step.action)) {
+        const binding = this.preparedSubmissions.get(key);
+        if (!binding || !await this.browser.sameReference(binding,decision)) throw Error('Prepared submission control lost or replaced; review required');
+      }
       const preflight=[];
       for(const probe of scenario.probes || []) {
         const result=await boundedCall(signal=>this.browser.probe(probe,{signal,timeoutMs:Math.min(1500,this.workerTimeout()),preflight:true}),Math.min(1500,this.workerTimeout()));
         preflight.push(this.clean({probe:probe.id || probe.path,...result}));
-        if(result.available!==true)throw Error('Operation preflight unavailable; submission denied');
+        if(result.available!==true || result.scopeMatched===false || typeof result.matched!=='boolean' || typeof result.correlation?.pass!=='boolean' || (result.matched && !result.correlation.pass))throw Error('Operation preflight scope or correlation unavailable; submission denied');
         if(result.correlation?.pass)throw Error('Operation already exists; preserve its original run and reconcile, no new gesture');
       }
       this.store.commit('operation-preflight',{scenario:scenario.id,samples:preflight});
@@ -190,11 +224,16 @@ export class Engine {
       return this.reconcile(scenario);
     }
     // Persist non-submitting gestures as well, preventing accidental UI replay after crash.
-    this.store.state.steps[key] = this.clean({ phase: 'attempted',role:this.role,sessionId:this.sessionId,action:decision.action,target:this.view?.elements?.[decision.ref]?.name || null,path:typeof decision.path==='string'?decision.path.split(/[?#]/)[0]:null,before:this.view?.id || null });
+    this.store.state.steps[key] = this.clean({ phase: 'attempted',role:this.role,sessionId:this.sessionId,authored:!!authoredStep,action:decision.action,target:this.view?.elements?.[decision.ref]?.name || null,path:typeof decision.path==='string'?decision.path.split(/[?#]/)[0]:null,before:this.view?.id || null });
     this.store.commit('step-before-gesture', { key });
     await this.browser.act(decision);
     await this.observe();
     this.store.state.steps[key].phase = 'observed';this.store.state.steps[key].after=this.view.id; this.store.commit('step-observed', { key });
+    const next = authoredStep && scenario.steps[scenario.steps.findIndex(s=>s.id===step.id)+1];
+    if (next?.submit && ['click','fill','select','slider','upload'].includes(next.action)) {
+      if (!this.browser.retainReference) throw Error('Browser adapter cannot retain prepared control; review required');
+      this.preparedSubmissions.set(`${scenario.id}/${next.id}`,await this.browser.retainReference(await this.resolveStep(next)));
+    }
     return null;
   }
   async reconcile(scenario) {
@@ -206,6 +245,7 @@ export class Engine {
     const deadline = this.clock() + (scenario.probeTimeoutMs ?? 1200);
     do {
       const matches = [];
+      const decidingEvidence = [];
       let allAvailable = true;
       for (const probe of scenario.probes || []) {
         let evidence;
@@ -213,14 +253,18 @@ export class Engine {
         try { evidence = await boundedCall(signal=>this.browser.probe(probe,{signal,timeoutMs:Math.min(1500,remaining)}),remaining); } catch { evidence = { available:false,matched: false, error: 'Independent read unavailable or deadline reached' }; }
         const id = randomUUID();
         intent.evidence.push(this.clean({ id, probe: probe.id || probe.path, verdict: probe.verdict, time: new Date().toISOString(), ...evidence }));
-        if (evidence.available !== true) allAvailable = false;
-        if (evidence.matched && probe.correlation && scenario.operationId===probe.correlation.value) matches.push(probe.verdict);
+        if (evidence.available !== true || evidence.scopeMatched === false || typeof evidence.matched!=='boolean' || (probe.correlation && (typeof evidence.correlation?.pass!=='boolean' || (evidence.matched && !evidence.correlation.pass)))) allAvailable = false;
+        if (evidence.matched === true && evidence.correlation?.pass === true && probe.correlation && scenario.operationId===probe.correlation.value) {
+          matches.push(probe.verdict); decidingEvidence.push(id);
+        }
       }
       this.store.commit('independent-read', { intent: intent.id });
       if (allAvailable && new Set(matches).size === 1) {
         intent.phase = matches[0]; intent.outcome = matches[0];
+        delete intent.conflict;
+        intent.outcomeEvidence = decidingEvidence;
         this.store.state.holds = this.store.state.holds.filter(id=>id!==intent.id);
-        this.store.state.coverage.push({ scenario: scenario.id, check: 'business-outcome', verdict: intent.phase, evidence: intent.evidence.filter(e=>e.matched).map(e=>e.id) });
+        this.store.state.coverage.push({ scenario: scenario.id, role:intent.role || this.role, check: 'business-outcome', verdict: intent.phase, evidence: decidingEvidence });
         this.store.commit('intent-reconciled',{id:intent.id,verdict:intent.phase}); return intent.phase;
       }
       if (new Set(matches).size > 1) { intent.conflict = true; break; }
@@ -281,10 +325,11 @@ export class Engine {
     await this.ensureRole(scenario);
     for (const check of scenario.readChecks || []) {
       // Two independent uncached reads, declarative owner expectations, no model verdict.
-      const sample = async()=>{try{return await this.browser.probe(check);}catch{return {available:false,matched:false,scope:check.scope || null,errorCategory:'independent-read-unavailable'};}};
+      const timeoutMs = Math.min(1500,scenario.probeTimeoutMs ?? 1500);
+      const sample = async()=>{try{return await boundedCall(signal=>this.browser.probe(check,{signal,timeoutMs}),timeoutMs);}catch{return {available:false,matched:false,scope:check.scope || null,errorCategory:'independent-read-unavailable'};}};
       const samples = [await sample(),await sample()];
       const evidence = samples.map(sample=>this.clean({id:randomUUID(),...sample}));
-      const pass = samples.every(s=>s.matched), available=samples.every(s=>s.available && s.scopeMatched !== false);
+      const available=samples.every(s=>s.available === true && s.scopeMatched !== false && typeof s.matched==='boolean' && (!check.correlation || s.correlation?.pass===true)), pass = available && samples.every(s=>s.matched === true);
       const stableFailure=available&&!samples[0].matched&&!samples[1].matched&&hash(samples[0].checks)===hash(samples[1].checks);
       const verdict=pass?'pass':!available?'blocked-prerequisite':stableFailure?'fail':'inconclusive';
       this.store.state.coverage.push({scenario:scenario.id,role:this.role,check:check.id,verdict,evidence:evidence.map(e=>e.id),samples:evidence});
@@ -297,7 +342,7 @@ export class Engine {
     }
   }
   report() { this.store.assertOpen(); if(this.busy && this.operations.getStore() !== this.busy)throw Error('Concurrent Engine operation; report refused'); return writeReport(this.store,this.config); }
-  async close() { try { await this.browser.close(); } finally { this.store.close(); } }
+  async close() { try { await this.#releasePreparations(); await this.browser.close(); } finally { this.store.close(); } }
 }
 
 // Reentrant only within the same engine pipeline. Independent API calls fail promptly;

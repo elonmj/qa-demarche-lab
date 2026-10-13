@@ -18,6 +18,10 @@ export function validateConfig(config, {readbackOnly=false} = {}) {
     safeId(scenario.id);
     if (scenario.role !== undefined) safeId(scenario.role);
     for (const name of ['steps','probes','readChecks','assertions']) if (scenario[name] !== undefined && !Array.isArray(scenario[name])) throw Error(`Scenario ${name} must be an array`);
+    if (!readbackOnly) {
+      const ids = [...(scenario.assertions || []),...(scenario.readChecks || [])].map(check=>safeId(check.id));
+      if (new Set(ids).size !== ids.length || ids.includes('business-outcome')) throw Error('Duplicate or reserved check identifier');
+    }
     for (const name of ['settleMs','probeTimeoutMs']) if (scenario[name] !== undefined && (!Number.isSafeInteger(scenario[name]) || scenario[name] < (name === 'settleMs' ? 0 : 1) || scenario[name] > 120000)) throw Error(`Invalid bounded ${name}`);
     if(scenario.agent&&!config.agents?.[scenario.agent])throw Error('Scenario agent not declared');
     if (scenario.writeConsent) {
@@ -38,9 +42,12 @@ export function validateConfig(config, {readbackOnly=false} = {}) {
         if(!Array.isArray(probe.scopeChecks) || !probe.scopeChecks.length)throw Error('Explicit scope checks required');
         for(const check of probe.scopeChecks)validateCheck(check);
       }
+      if (probe.correlation !== undefined) {
+        if (!['equals','includes'].includes(probe.correlation?.op)) throw Error('Exact operation or entity correlation required');
+        validateCheck(probe.correlation);
+      }
       if(!readbackOnly && scenario.probes?.includes(probe) && scenario.writeConsent) {
         if(typeof scenario.operationId !== 'string' || !scenario.operationId.length || !probe.correlation || !['equals','includes'].includes(probe.correlation.op) || probe.correlation.value !== scenario.operationId)throw Error('Business probe requires explicit operation correlation');
-        validateCheck(probe.correlation);
       }
       if (probe.id !== undefined) safeId(probe.id);
     }
@@ -93,7 +100,7 @@ function validateEndpoint(endpoint, read) {
   }
 }
 export class Policy {
-  constructor(config, store) { this.config = config; this.store = store; this.active = null; }
+  constructor(config, store, clock = () => Date.now()) { this.config = config; this.store = store; this.clock = clock; this.active = null; }
   isRead(url, method) {
     const u = new URL(url);
     return u.origin === this.config.origin && !u.username && !u.password && !u.search && this.config.reads.some(r => r.path === u.pathname && r.methods.includes(method));
@@ -103,12 +110,12 @@ export class Policy {
     if ((this.store.state.networkRequests || 0) >= (this.config.maxNetworkRequests || 500)) return {allow:false,reason:'Persistent network budget exhausted'};
     if (this.isRead(url, method)) {
       this.store.state.networkRequests=(this.store.state.networkRequests || 0)+1;
-      this.store.commit('safe-read-dispatched',{method});
+      this.store.commit('safe-read-dispatched',{method,stage:'reserved-before-transport'});
       return { allow: true, kind: 'declared-read' };
     }
     const u = new URL(url), intent = this.active && this.store.state.intents[this.active];
     if (u.origin !== this.config.origin || u.search || u.username || u.password || !intent || intent.phase !== 'attempted') return { allow: false, reason: 'No active scoped consent' };
-    if(this.config.budget.maxDurationMs && Date.now()-Date.parse(this.store.state.createdAt)>=this.config.budget.maxDurationMs)return {allow:false,reason:'Campaign deadline reached; write denied'};
+    if(this.config.budget.maxDurationMs && this.clock()-Date.parse(this.store.state.createdAt)>=this.config.budget.maxDurationMs)return {allow:false,reason:'Campaign deadline reached; write denied'};
     const index = intent.endpoints.findIndex(e => e.path === u.pathname && e.methods.includes(method));
     const endpoint = this.config.scenarios.find(s=>s.id===intent.scenario)?.writeConsent?.endpoints[index] || intent.endpoints[index];
     if (!endpoint || (intent.requests[index] || 0) >= endpoint.maxRequests) return { allow: false, reason: 'Endpoint or request cap denied' };
@@ -121,7 +128,7 @@ export class Policy {
     }
     intent.requests[index] = (intent.requests[index] || 0) + 1;
     this.store.state.networkRequests=(this.store.state.networkRequests || 0)+1;
-    this.store.commit('network-dispatched', { intent: this.active, endpoint: index, method });
+    this.store.commit('network-dispatched', { intent: this.active, endpoint: index, method,stage:'reserved-before-transport' });
     return { allow: true, kind: 'write', intent: this.active };
   }
 }

@@ -2,6 +2,10 @@
 
 Produit : **agents simulant une démarche de QA humain**, jamais véritables testeurs humains. La démarche (persona, exploration, hypothèse, contre-exemple, reproduction, revue) peut être simulée ; la véracité des résultats ne dépend pas d'une formule du modèle.
 
+Le contrat actuel, les préconditions/transitions vérifiables et les limites de reprise sont précisés dans l'[audit logique du 13 octobre](LOGICAL-AUDIT.md). Le rôle initial est durable ; les lectures d'une intention reprennent son rôle enregistré. Les préparations doivent correspondre aux gestes écrits et former la fin ininterrompue de l'historique ; le contrôle préparé conserve son identité DOM aux observations. Le rapport projette les contrôles absents en `not-run` sans fabriquer de preuve et garde un geste non observé visible malgré une exploration ultérieure réussie.
+
+Les événements historiques `*-dispatched` enregistrent des réservations avant transport, explicitées par `facts.stage`, pas une réception serveur. La garantie de non-rejeu et les budgets se limitent au même journal intact, éventuellement déplacé après arrêt ; un journal indépendant ne partage aucune autorité. Les lectures préalables ne sont pas une transaction entre campagnes.
+
 ```mermaid
 flowchart LR
   Config[Mission et consentements du propriétaire] --> Engine[Moteur]

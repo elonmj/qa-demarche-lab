@@ -66,7 +66,7 @@ test('A4 crash after durable worker reservation prevents another call on restart
 
 test('A5 unavailable competing oracle cannot be interpreted as a confirmed outcome', async()=>{
   const c=config(), b=fake(); c.scenarios[0].probeTimeoutMs=1;
-  b.probe=async p=>p.verdict==='confirmed'?{available:true,matched:true,checks:[]}:{available:false,matched:false,checks:[]};
+  b.probe=async p=>p.verdict==='confirmed'?{available:true,matched:true,correlation:{pass:true},checks:[]}:{available:false,matched:false,checks:[]};
   const engine=new Engine(c,dir(),provider(),{browser:b});
   try { await engine.start(); pending(engine,c); assert.equal(await engine.reconcile(c.scenarios[0]),'uncertain'); assert.deepEqual(engine.store.state.holds,['i']); }
   finally { await engine.close(); }

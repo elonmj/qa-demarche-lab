@@ -1,0 +1,189 @@
+{
+  "date": "2026-10-13",
+  "baseCommit": "b1a51e9373794e55ce41f8af1d2bccf93f3cf173",
+  "branch": "codex/qa-reliability",
+  "environment": {
+    "node": "v24.14.1",
+    "os": "Windows",
+    "playwright": "1.61.1"
+  },
+  "regressionFileSha256": "5e5109909f6d7909cacbeb1d4d642d0aa56945b4b47d579226d998e5ee44ee10",
+  "baseline": {
+    "command": "node --test --test-name-pattern '^L' artifacts/logical-base-b1a51e9/tests/logical-audit.test.mjs",
+    "exitCode": 1,
+    "expectedFailure": true,
+    "tests": 16,
+    "pass": 0,
+    "fail": 16,
+    "cancelled": 0,
+    "skipped": 0,
+    "duration_ms": 10186.3666
+  },
+  "corrected": {
+    "command": "npm test",
+    "exitCode": 0,
+    "tests": 136,
+    "pass": 136,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "duration_ms": 86394.4183
+  },
+  "commands": [
+    {
+      "command": "npm run check",
+      "exitCode": 0,
+      "result": "Syntax OK"
+    },
+    {
+      "command": "npm run demo",
+      "exitCode": 0,
+      "result": "save-basic: confirmed",
+      "artifact": "artifacts/demo-1791894083253/REPORT.md"
+    },
+    {
+      "command": "npm run benchmark",
+      "exitCode": 0,
+      "artifact": "artifacts/benchmark-1791894089066/RESULTS.json"
+    },
+    {
+      "command": "node fixtures/visual-qa.mjs",
+      "exitCode": 0,
+      "artifact": "artifacts/visual-1791893059331/VIEWS.json"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "benchmark": {
+    "executedAt": "2026-10-13T12:21:29.065Z",
+    "totals": {
+      "qa-lab": {
+        "cases": 8,
+        "correct": 8,
+        "durationMs": 12614,
+        "llmCalls": 0,
+        "llmCostMicros": 0,
+        "unauthorizedRepeats": 0,
+        "falsePositives": 0
+      },
+      "playwright-authored": {
+        "cases": 8,
+        "correct": 8,
+        "durationMs": 6119,
+        "llmCalls": 0,
+        "llmCostMicros": 0,
+        "unauthorizedRepeats": 0,
+        "falsePositives": 0
+      }
+    },
+    "seeds": [
+      17,
+      2026,
+      8675309
+    ],
+    "metrics": {
+      "truePositives": 6,
+      "falsePositives": 0,
+      "trueNegatives": 18,
+      "falseNegatives": 0,
+      "unresolved": 12,
+      "negativeCases": 18,
+      "positiveCases": 6,
+      "falsePositiveRate": 0,
+      "recall": 1
+    }
+  },
+  "visual": [
+    {
+      "site": "shop",
+      "width": 390,
+      "id": "fbe90b3f-1f7d-48b4-a135-77b72c03fa5c",
+      "path": "/case/basic",
+      "errors": [],
+      "overflow": false,
+      "screenshotObserved": true,
+      "domRead": true
+    },
+    {
+      "site": "shop",
+      "width": 1280,
+      "id": "2cce5ced-27f8-43c5-861a-1362214162a8",
+      "path": "/case/basic",
+      "errors": [],
+      "overflow": false,
+      "screenshotObserved": true,
+      "domRead": true
+    },
+    {
+      "site": "registry",
+      "width": 390,
+      "id": "09f458b7-017b-4060-a5e3-87f6990b9a31",
+      "path": "/register",
+      "errors": [],
+      "overflow": false,
+      "screenshotObserved": true,
+      "domRead": true
+    },
+    {
+      "site": "registry",
+      "width": 1280,
+      "id": "b19643f5-68d0-4e8d-9c9e-4f4aa24389c7",
+      "path": "/register",
+      "errors": [],
+      "overflow": false,
+      "screenshotObserved": true,
+      "domRead": true
+    }
+  ],
+  "processInterruption": {
+    "boundaries": [
+      "durable intent before gesture",
+      "durable worker reservation before reply"
+    ],
+    "realProcessesKilled": 2,
+    "syntheticWorkerReservationMicros": 123,
+    "newWorkerCallsAfterResume": 0,
+    "newGesturesAfterResume": 0
+  },
+  "directoryBoundary": {
+    "results": [
+      {
+        "directory": "original",
+        "verdict": "uncertain",
+        "intents": 1,
+        "operationId": "same-operation",
+        "exitCode": 2,
+        "submitAttempts": 1
+      },
+      {
+        "directory": "different-directory",
+        "verdict": "uncertain",
+        "intents": 1,
+        "operationId": "same-operation",
+        "exitCode": 2,
+        "submitAttempts": 1
+      }
+    ],
+    "serverRequests": 0,
+    "scope": "Unsupported relocation into an empty unrelated ledger: no shared local authority and no server record of the first attempt. No business data."
+  },
+  "limits": [
+    "Anti-replay and budgets apply to one intact ledger, including relocation after process exit; distinct empty ledgers have no common authority.",
+    "No atomic preflight across campaigns or server idempotency contract supplied.",
+    "Trusted adapter and owner-defined correlation/scope/oracles required; transient invisible DOM and external mutations unproven.",
+    "No real provider, billed LLM, business account, deployment, Linux/remote CI, power-loss or autonomous recall claim."
+  ],
+  "validationNotes": [
+    "16 regression executions under 13 IDs; all fail on the same base/test file. Counts describe tested cases, not completeness.",
+    "Final syntax, complete suite, demo and benchmark passed after the last correlation correction. The visual browser adapter is unchanged since the observed captures.",
+    "Initial bootstrap launched npx before npm ci completed; cached Playwright 1.64 download was interrupted, then install used the pinned local 1.61.1 CLI. Lockfile unchanged.",
+    "An early new test froze its injected reconciliation clock and reached the ledger cap; fixture corrected to advance the clock at each read. Acceptance assertions retained."
+  ],
+  "artifacts": {
+    "baseline": "artifacts/logical-audit-baseline-complete.txt",
+    "tests": "artifacts/logical-audit-tests-complete.txt",
+    "benchmark": "artifacts/logical-audit-benchmark-complete.txt"
+  }
+}

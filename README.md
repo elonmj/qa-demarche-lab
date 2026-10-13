@@ -6,6 +6,10 @@ Version **0.2.0 beta**, code sous licence MIT. Deux sites synthétiques, tests d
 
 ## Pour un orchestrateur LLM
 
+L'[audit logique du 13 octobre](docs/LOGICAL-AUDIT.md) documente les contre-exemples, corrections et invariants exécutables après `b1a51e9`. Préparations liées au contrôle d'origine, rôle conservé après interruption, lectures bornées et contrôles non exécutés explicites dans le rapport. Les preuves de validation sont dans [logical-audit-evidence.json](docs/logical-audit-evidence.json).
+
+Le verrou et les budgets appartiennent à un journal intact. Déplacer ce journal après arrêt préserve la reprise ; un répertoire vide n'hérite pas de ses protections. L'exécution unique entre campagnes indépendantes requiert une autorité commune ou un contrat d'idempotence serveur ; elle n'est pas garantie par le seul préflight.
+
 Une [revue indépendante adversariale](docs/ADVERSARIAL-REVIEW.md) reprend la PR #1 : concurrence, reprise, deadlines, confidentialité, oracles et stockage. Elle inclut des régressions avant/après et une évaluation locale à seeds fixes. Voir les changements de contrat d'écriture et de format du journal avant de reprendre une ancienne campagne.
 
 Lire [AGENTS.md](AGENTS.md) puis [le guide d'orchestration](docs/ORCHESTRATION.md). Le modèle de l'orchestrateur est indépendant des workers : par exemple GPT-6 Sol orchestre et choisit un worker moins coûteux pour l'exploration. Le choix est explicite, jamais un fallback automatique.
@@ -96,7 +100,7 @@ Pour `run`, `explore`, `reconcile` et `demo`, la CLI fournit un code utilisable 
 | 1 | Erreur d'exécution, de configuration ou d'instrumentation |
 | 2 | Intention non rapprochée : conserver les preuves, ne pas resoumettre |
 | 3 | Au moins un contrôle configuré a échoué |
-| 4 | Contrôle bloqué/inconclusif ou circuit worker ouvert dans le rapport |
+| 4 | Contrôle non exécuté/bloqué/inconclusif, geste sans observation durable ou circuit worker ouvert |
 
 Une intention non rapprochée prime sur les autres contrôles. Le code 0 décrit les checks exécutés, pas une certification du site. `report` et `serve` restent des commandes de lecture/pilotage : examiner leurs verdicts JSON. Voir le [renforcement et ses critères](docs/HARDENING.md).
 

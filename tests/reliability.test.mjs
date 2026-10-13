@@ -114,7 +114,7 @@ test('independent reads select mission roles and identical check names stay sepa
     assert.deepEqual(engine.store.state.candidates.map(c=>c.role),['first','second']);
     assert.equal(engine.store.state.coverage.length,3);
     engine.store.state.intents.pending={id:'pending',scenario:'first',phase:'uncertain',evidence:[]};
-    browser.probe=async function(){this.reads.push(this.role);return {available:true,matched:true,checks:[]};};
+    browser.probe=async function(){this.reads.push(this.role);return {available:true,matched:true,correlation:{pass:true},checks:[]};};
     assert.equal(await engine.reconcile(cfg.scenarios[0]),'confirmed');
     assert.equal(browser.role,'first');
   } finally {await engine.close();}
