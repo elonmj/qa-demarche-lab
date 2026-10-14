@@ -1,0 +1,312 @@
+{
+  "date": "2026-10-14",
+  "timezone": "Africa/Porto-Novo",
+  "status": "corrections validated locally",
+  "baseCommit": "0b1622542f587e429cb7f64799070ce557a04a6e",
+  "sourceHashes": [
+    {
+      "file": "src/browser.mjs",
+      "sha256": "9e9f6fecd31f9ad748490e551a15bb000a86546664dc50efcfa368800d936b08"
+    },
+    {
+      "file": "src/engine.mjs",
+      "sha256": "8dab418180831ddb6e250364dfb5952285aa0a4cd664fcf8d027f19d4e4fb76f"
+    },
+    {
+      "file": "src/policy.mjs",
+      "sha256": "826cc414f622405d64ed04d58dd3ec39a4140e1f78e0eeccc5740cf6b3a60e92"
+    },
+    {
+      "file": "src/report.mjs",
+      "sha256": "5f2b12af111a8ca1dac36e4ca7a29e1143b5763d152cc5a92e40f5abcfcb2bce"
+    },
+    {
+      "file": "src/store.mjs",
+      "sha256": "32fdc61c6a7271d1e56deb823415107a819b84c28c55d481fa10c83640c9b782"
+    },
+    {
+      "file": "src/usage.mjs",
+      "sha256": "0478249f29ef1ec2b5c9374cc96de4d60e94fc9645199854e5bea94e690437f9"
+    }
+  ],
+  "fixes": [
+    {
+      "id": "H01",
+      "result": "maxDomControls configurable de 1 à 2000, 200 par défaut. Recette OraEtLabora avec 500: Collège observé sur ordinateur et téléphone.",
+      "proof": "static-recheck-1791966829805/RESULTS.json"
+    },
+    {
+      "id": "H02",
+      "result": "Résolution par nom complet dans le navigateur; observation worker toujours bornée à 160. Régression couvrant deux préfixes identiques et une véritable ambiguïté."
+    },
+    {
+      "id": "H03",
+      "result": "Assertions finales exécutées en exploration, même au plafond. each-observation garde les défauts transitoires et fonctionne également sur les gestes RPC. Une interruption n’invente pas un contrôle final."
+    },
+    {
+      "id": "H04",
+      "result": "Total supplier normalisé; compteurs conservés entre réservations/reprises. Cache et reasoning non additionnés à nouveau. Usage absent affiché indisponible."
+    },
+    {
+      "id": "H05",
+      "result": "Fiches UI dédupliquées dans report.findings et REPORT.md: attendu, observé, rôle, page, viewport, gestes, impact et preuves. Elles restent distinctes des preuves métier."
+    }
+  ],
+  "validation": {
+    "tests": {
+      "passed": 146,
+      "failed": 0,
+      "privateLog": "artifacts/corrections-bounded-ui-test-20261014.txt"
+    },
+    "syntax": "pass",
+    "demo": "confirmed",
+    "benchmark": {
+      "directory": "artifacts/benchmark-1791969144906",
+      "totals": {
+        "qa-lab": {
+          "cases": 8,
+          "correct": 8,
+          "durationMs": 20112,
+          "llmCalls": 0,
+          "llmCostMicros": 0,
+          "unauthorizedRepeats": 0,
+          "falsePositives": 0
+        },
+        "playwright-authored": {
+          "cases": 8,
+          "correct": 8,
+          "durationMs": 8960,
+          "llmCalls": 0,
+          "llmCostMicros": 0,
+          "unauthorizedRepeats": 0,
+          "falsePositives": 0
+        }
+      },
+      "seeded": {
+        "truePositives": 6,
+        "falsePositives": 0,
+        "trueNegatives": 18,
+        "falseNegatives": 0,
+        "unresolved": 12,
+        "negativeCases": 18,
+        "positiveCases": 6,
+        "falsePositiveRate": 0,
+        "recall": 1
+      },
+      "seeds": [
+        17,
+        2026,
+        8675309
+      ],
+      "limits": "Décideurs synthétiques et oracles déclarés; aucun rappel autonome. Durées non interprétées."
+    },
+    "priorConcurrentAttempt": {
+      "tests": {
+        "passed": 145,
+        "failed": 1
+      },
+      "benchmark": {
+        "falseNegatives": 1,
+        "falsePositives": 0
+      },
+      "reason": "Clic limité à 1200 ms expiré dans le test de crash; première lecture indépendante indisponible dans un cas positif du benchmark. Deux suites navigateur exécutées simultanément.",
+      "logs": [
+        "artifacts/corrections-final-test-20261014.txt",
+        "artifacts/corrections-benchmark-20261014.txt"
+      ],
+      "preserved": true
+    },
+    "priorSerialAttempt": {
+      "tests": {
+        "passed": 143,
+        "failed": 3
+      },
+      "reason": "Ancien délai UI de 1200 ms dépassé sur ce poste chargé.",
+      "log": "artifacts/corrections-serial-test-20261014.txt",
+      "preserved": true
+    },
+    "uiTimeouts": {
+      "defaultActionMs": 1200,
+      "defaultNavigationMs": 5000,
+      "configurationMaximumMs": 20000,
+      "fixtureActionMs": 5000,
+      "fixtureNavigationMs": 10000,
+      "clippedToRemainingDeadline": true
+    }
+  },
+  "detection": {
+    "cases": 21,
+    "metrics": {
+      "truePositives": 9,
+      "falseNegatives": 3,
+      "falsePositives": 0,
+      "trueNegatives": 9,
+      "recall": 0.75,
+      "precision": 1,
+      "contractRecall": 1,
+      "unresolved": 3
+    },
+    "missed": [
+      {
+        "seed": 17,
+        "id": "v1boqc4i",
+        "kind": "wrong-total"
+      },
+      {
+        "seed": 2026,
+        "id": "v18dkbr3",
+        "kind": "wrong-total"
+      },
+      {
+        "seed": 8675309,
+        "id": "v1k211v2",
+        "kind": "wrong-total"
+      }
+    ],
+    "limits": [
+      "Décideur scripté, aucun rappel autonome LLM mesuré.",
+      "Contrats UI génériques déclarés; aucun scénario ne porte le libellé du défaut.",
+      "Le total 21 au lieu de 20 est volontairement compté comme bug manqué: pas de contrat métier ni probe configuré.",
+      "Les ressources indisponibles sont des prérequis, pas des défauts produit confirmés."
+    ],
+    "proof": "artifacts/discovery-1791966683945/RESULTS.json"
+  },
+  "live": {
+    "model": "gpt-6.1-sol",
+    "calls": 6,
+    "maxCalls": 6,
+    "automaticRetry": false,
+    "fallback": false,
+    "stop": null,
+    "reportedTokens": 80374,
+    "cases": [
+      {
+        "id": "v1ic475",
+        "kind": "clean",
+        "defect": false,
+        "findings": 0,
+        "modelHypotheses": 0,
+        "calls": 2,
+        "visitedPages": [
+          "/start/v1ic475",
+          "/view/v1ic475"
+        ],
+        "exitCode": 0
+      },
+      {
+        "id": "v35iu98",
+        "kind": "overflow",
+        "defect": true,
+        "findings": 1,
+        "modelHypotheses": 0,
+        "calls": 2,
+        "visitedPages": [
+          "/start/v35iu98",
+          "/view/v35iu98"
+        ],
+        "exitCode": 3
+      },
+      {
+        "id": "v2qfk7v",
+        "kind": "runtime-error",
+        "defect": true,
+        "findings": 1,
+        "modelHypotheses": 1,
+        "calls": 2,
+        "visitedPages": [
+          "/start/v2qfk7v",
+          "/view/v2qfk7v"
+        ],
+        "exitCode": 3
+      }
+    ],
+    "proof": "artifacts/live-discovery-1791966912885/RESULTS.json",
+    "limits": [
+      "Au plus six décisions réelles, deux par vue; aucune mesure statistique de rappel autonome.",
+      "Le worker choisit les gestes; les contrats génériques du moteur produisent les échecs factuels.",
+      "La vérité du contrôleur est ajoutée après le run uniquement. Coût USD inconnu."
+    ]
+  },
+  "targetRecheck": {
+    "target": "Maquette statique OraEtLabora autorisée par le propriétaire",
+    "sourceUnchanged": true,
+    "rows": [
+      {
+        "viewport": "desktop",
+        "exitCode": 3,
+        "findings": [
+          {
+            "page": "/college.html",
+            "check": "fits",
+            "expected": false,
+            "observed": true,
+            "evidence": [
+              "0c831848-20a6-4255-9f5c-3ed858e66de1"
+            ]
+          }
+        ],
+        "coverage": {
+          "fail": 1,
+          "pass": 23
+        },
+        "observations": 9
+      },
+      {
+        "viewport": "mobile",
+        "exitCode": 3,
+        "findings": [
+          {
+            "page": "/college.html",
+            "check": "fits",
+            "expected": false,
+            "observed": true,
+            "evidence": [
+              "1e09ceb2-a47a-4396-a026-e32b3ee829c7"
+            ]
+          },
+          {
+            "page": "/comite.html",
+            "check": "fits",
+            "expected": false,
+            "observed": true,
+            "evidence": [
+              "4421dfe3-9a69-463a-ab0b-27d4a2bd7ea0"
+            ]
+          },
+          {
+            "page": "/informaticien.html",
+            "check": "fits",
+            "expected": false,
+            "observed": true,
+            "evidence": [
+              "9f20fb65-955d-4ad0-ae92-43f56664cef9"
+            ]
+          },
+          {
+            "page": "/secretaire-saisie.html",
+            "check": "fits",
+            "expected": false,
+            "observed": true,
+            "evidence": [
+              "93c6d557-ebbf-4853-a312-6de36b0b48c4"
+            ]
+          }
+        ],
+        "coverage": {
+          "fail": 4,
+          "pass": 20
+        },
+        "observations": 9
+      }
+    ],
+    "proof": "artifacts/static-recheck-1791966829805/RESULTS.json"
+  },
+  "limits": [
+    "Validation locale Windows seulement; aucune CI distante ou plateforme Linux revendiquée.",
+    "La découverte autonome de bugs métier reste non démontrée: le moteur vérifie des contrats, le worker choisit les gestes et propose des hypothèses.",
+    "Un moteur de résultats correct exige les règles approuvées du propriétaire et des probes indépendantes.",
+    "Aucun reset, migration ou modification des campagnes du 13 octobre. Les nouvelles mesures ont leurs propres journaux.",
+    "Les sources de la maquette OraEtLabora sont inchangées; ses débordements sont signalés, pas corrigés par cette tâche."
+  ],
+  "evidenceAvailability": "Références portables vers les preuves privées conservées localement; journaux, captures et sorties CLI non distribués."
+}

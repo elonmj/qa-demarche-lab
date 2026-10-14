@@ -6,6 +6,7 @@ import { Policy, validateConfig, checkValue, readPath, Redactor } from './policy
 import { BrowserAdapter } from './browser.mjs';
 import { validateDecision } from './providers.mjs';
 import { writeReport } from './report.mjs';
+import { tokenCount } from './usage.mjs';
 
 export class Engine {
   constructor(config, directory, provider, options = {}) {
@@ -143,7 +144,10 @@ export class Engine {
     catch(error){this.workerFailed(error,'decision');throw error;}
     delete this.store.state.pendingWorker;
     this.store.commit('worker-reply-validated');
-    if(this.provider.lastUsage){this.store.state.workerUsage[this.provider.id].reportedTokens+=(this.provider.lastUsage.total_tokens || this.provider.lastUsage.totalTokens || 0);this.store.state.workerUsage[this.provider.id].assurance=this.provider.lastAssurance || null;this.store.state.workerUsage[this.provider.id].cleanupPending=!!this.provider.cleanupPending;this.store.commit('worker-usage',{provider:this.provider.id,usage:this.provider.lastUsage});}
+    const usage=this.store.state.workerUsage[this.provider.id],tokens=tokenCount(this.provider.lastUsage);
+    if(tokens!==null){usage.reportedTokens=(usage.reportedTokens ?? 0)+tokens;usage.usageReportedCalls++;}
+    usage.assurance=this.provider.lastAssurance || null;usage.cleanupPending=!!this.provider.cleanupPending;
+    this.store.commit('worker-usage',{provider:this.provider.id,usage:this.provider.lastUsage || {},tokensAvailable:tokens!==null});
     if (decision.claim || decision.finding) {
       // Keep proposals separate. No model text promoted to confirmed product defect.
       const candidate = this.browser.redactor ? this.browser.redactor.value({ claim: decision.claim, finding: decision.finding }) : { claim: decision.claim, finding: decision.finding };
@@ -213,6 +217,7 @@ export class Engine {
         await new Promise(resolve=>setTimeout(resolve,Math.min(scenario.settleMs ?? 150,remaining)));
         await this.observe();
         this.store.state.steps[key].after = this.view.id;
+        this.#recordUiAssertions(scenario,'each-observation');
       } catch (error) {
         this.store.state.intents[id].error = this.browser.redactor?.text(error.message) || 'Browser action failed';
         this.store.commit('gesture-uncertain',{id});
@@ -229,6 +234,7 @@ export class Engine {
     await this.browser.act(decision);
     await this.observe();
     this.store.state.steps[key].phase = 'observed';this.store.state.steps[key].after=this.view.id; this.store.commit('step-observed', { key });
+    this.#recordUiAssertions(scenario,'each-observation');
     const next = authoredStep && scenario.steps[scenario.steps.findIndex(s=>s.id===step.id)+1];
     if (next?.submit && ['click','fill','select','slider','upload'].includes(next.action)) {
       if (!this.browser.retainReference) throw Error('Browser adapter cannot retain prepared control; review required');
@@ -280,6 +286,7 @@ export class Engine {
     await this.ensureRole(scenario);
     const existing = Object.values(this.store.state.intents).find(i=>i.scenario===scenario.id);
     if (existing) return this.reconcile(scenario);
+    this.#recordUiAssertions(scenario,'each-observation');
     for (const step of scenario.steps || []) {
       const previous = this.store.state.steps[`${scenario.id}/${step.id}`];
       if (previous) {
@@ -290,16 +297,13 @@ export class Engine {
       if (decision.action === 'finish') break;
       await this.execute(scenario,step,decision);
     }
-    for (const assertion of scenario.assertions || []) {
-      const actual = readPath(this.view,assertion.path), pass = checkValue(actual,assertion);
-      this.store.state.coverage.push({ scenario: scenario.id, check: assertion.id, verdict: pass?'pass':'fail', evidence: [this.view.id] });
-    }
+    this.#recordUiAssertions(scenario,'final');
     this.store.commit('scenario-observed',{id:scenario.id});
     return Object.values(this.store.state.intents).find(i=>i.scenario===scenario.id)?.phase || 'observed';
   }
   async resolveStep(step) {
     if (['navigate','observe','scroll'].includes(step.action)) return validateDecision({ action: step.action, path: step.path, value:step.value });
-    const matches = this.view.elements.filter(e=>e.name===step.target);
+    const matches = this.browser.resolveControl ? this.browser.resolveControl(step.target,this.view.id) : this.view.elements.filter(e=>e.name===step.target);
     if (matches.length!==1) throw Error('Protocol divergence: expected control absent or ambiguous');
     return validateDecision({ action:step.action,ref:matches[0].ref,snapshotId:this.view.id,...(step.text!==undefined?{text:step.text}:{}),...(step.value!==undefined?{value:step.value}:{}) });
   }
@@ -311,14 +315,36 @@ export class Engine {
     scenario = this.trustedScenario(scenario);
     await this.ensureRole(scenario);
     if (!Number.isSafeInteger(limit) || limit<1 || limit>12) throw Error('Exploration limit must be 1..12');
+    this.#recordUiAssertions(scenario,'each-observation');
     for (let n=0;n<limit;n++) {
       const decision = await this.decision(scenario);
-      if (decision.action === 'finish') return 'observed';
+      if (decision.action === 'finish') { this.#recordUiAssertions(scenario,'final');return 'observed'; }
       // Exploration is strictly read-only; submissions only via trusted authored scenarios.
       if (decision.intent) throw Error('Exploration cannot authorize writes');
       await this.execute(scenario,{id:`explore-${this.store.state.calls}`,submit:false},decision);
     }
+    this.#recordUiAssertions(scenario,'final');
     return 'bounded';
+  }
+  #recordUiAssertions(scenario,timing) {
+    scenario=this.trustedScenario(scenario);this.store.assertOpen();
+    if(!this.view || this.view.role!==this.role)return;
+    for(const assertion of scenario.assertions || []) {
+      if((assertion.timing || 'final')!==timing)continue;
+      if(this.store.state.coverage.some(c=>c.scenario===scenario.id&&c.role===this.role&&c.check===assertion.id&&c.evidence.includes(this.view.id)))continue;
+      const actual=readPath(this.view,assertion.path),resourceBlocked=(this.view.resourceFailures || []).length>0;
+      const available=actual!==undefined&&!resourceBlocked;
+      const verdict=available?(checkValue(actual,assertion)?'pass':'fail'):'blocked-prerequisite';
+      const row=this.clean({scenario:scenario.id,role:this.role,check:assertion.id,kind:'ui-assertion',verdict,path:assertion.path,op:assertion.op,expected:assertion.value,observed:actual===undefined?null:actual,available,timing,evidence:[this.view.id],page:this.view.path,viewport:this.view.viewport || null,impact:assertion.impact || 'Attente UI du propriétaire non respectée; impact à qualifier.',scope:'UI observation only; no server persistence or security proof.',...(resourceBlocked?{reason:'Required resource unavailable or blocked; UI diagnosis inconclusive',resourceFailures:this.view.resourceFailures}:actual===undefined?{reason:'Configured observation field unavailable'}:{})});
+      this.store.state.coverage.push(row);
+      if(verdict==='fail') {
+        const fingerprint=hash(['ui-assertion-failure',scenario.id,this.role,assertion.id,this.view.path,row.expected]);
+        const previous=this.store.state.candidates.find(c=>c.fingerprint===fingerprint);
+        if(previous){if(!previous.evidenceIds.includes(this.view.id))previous.evidenceIds.push(this.view.id);}
+        else this.store.state.candidates.push({...row,kind:'ui-assertion-failure',fingerprint,evidenceIds:[this.view.id],reproduction:this.clean({scenario:scenario.id,page:this.view.path,viewport:this.view.viewport || null,actions:Object.entries(this.store.state.steps).filter(([key])=>key.startsWith(`${scenario.id}/`)).slice(-8).map(([id,step])=>({id,action:step.action,target:step.target,path:step.path,before:step.before,after:step.after}))}),qualification:'Factual UI check failure; review policy/network prerequisites and business impact separately.'});
+      }
+      this.store.commit('ui-assertion',{scenario:scenario.id,check:assertion.id,verdict,evidence:this.view.id});
+    }
   }
   async verifyChecks(scenario) {
     scenario = this.trustedScenario(scenario);

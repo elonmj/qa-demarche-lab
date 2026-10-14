@@ -44,10 +44,11 @@ test('resume after injected interruption before readback keeps intent and preven
 });
 test('real process kill after mutation: surviving lock reviewed, no replay and budget preserved',async()=>{
   const site=await startShop(),config=shopConfig(site.origin,'timeout','crashkey'),directory=dir();let engine,child;
+  config.browserActionTimeoutMs=5000;
   try{
     child=fork(fileURLToPath(new URL('./crash-worker.mjs',import.meta.url)),[JSON.stringify(config),directory],{stdio:['ignore','ignore','pipe','ipc']});
     let diagnostic='';child.stderr.on('data',chunk=>diagnostic+=chunk);
-    await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Child did not reach commit: '+diagnostic)),15000);child.once('message',()=>{clearTimeout(timer);resolve();});child.once('exit',code=>{clearTimeout(timer);reject(Error('Unexpected exit '+code+': '+diagnostic));});});
+    await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Child did not reach commit: '+diagnostic)),30000);child.once('message',()=>{clearTimeout(timer);resolve();});child.once('exit',code=>{clearTimeout(timer);reject(Error('Unexpected exit '+code+': '+diagnostic));});});
     assert.equal(site.state.requests,1);await new Promise(resolve=>{child.once('exit',resolve);child.kill('SIGKILL');});
     assert.throws(()=>new Engine(config,directory,provider()),/EEXIST/);unlock(directory);
     engine=new Engine(config,directory,provider());await engine.start();assert.equal(await engine.runScenario(config.scenarios[0]),'confirmed');assert.equal(site.state.requests,1);

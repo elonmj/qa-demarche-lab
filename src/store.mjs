@@ -111,7 +111,7 @@ export class Store {
     this.state.pendingWorker = {provider:provider.id,call:this.state.calls,time:new Date().toISOString()};
     this.state.provider = {id:provider.id,maxCostMicros:cost};
     this.state.workerUsage ||= {};
-    this.state.workerUsage[provider.id]={calls:(previous?.calls || 0)+1,maxCostMicros:cost,billingMode:provider.billingMode || 'reservation',reportedTokens:previous?.reportedTokens || 0};
+    this.state.workerUsage[provider.id]={...previous,calls:(previous?.calls || 0)+1,maxCostMicros:cost,billingMode:provider.billingMode || 'reservation',reportedTokens:previous?.reportedTokens ?? null,usageReportedCalls:previous?.usageReportedCalls || 0};
     this.commit('call-reserved', { provider: provider.id, cost, quota });
   }
   close() {

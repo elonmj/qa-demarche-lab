@@ -51,7 +51,10 @@ export function validateConfig(config, {readbackOnly=false} = {}) {
       }
       if (probe.id !== undefined) safeId(probe.id);
     }
-    for (const check of scenario.assertions || []) validateCheck(check);
+    for (const check of scenario.assertions || []) {
+      validateCheck(check);
+      if (check.timing !== undefined && !['final','each-observation'].includes(check.timing)) throw Error('Invalid UI assertion timing');
+    }
     for (const step of scenario.steps || []) {
       safeId(step.id);
       if (step.submit !== undefined && typeof step.submit !== 'boolean') throw Error('submit must be boolean');
@@ -62,6 +65,8 @@ export function validateConfig(config, {readbackOnly=false} = {}) {
   }
   if (new Set((config.scenarios || []).map(s=>s.id)).size !== (config.scenarios || []).length) throw Error('Duplicate scenario identifier');
   if (config.maxNetworkRequests !== undefined && (!Number.isSafeInteger(config.maxNetworkRequests) || config.maxNetworkRequests < 1)) throw Error('Invalid network budget');
+  if (config.maxDomControls !== undefined && (!Number.isSafeInteger(config.maxDomControls) || config.maxDomControls < 1 || config.maxDomControls > 2000)) throw Error('Invalid maxDomControls (1..2000)');
+  for(const name of ['browserActionTimeoutMs','browserNavigationTimeoutMs'])if(config[name]!==undefined&&(!Number.isSafeInteger(config[name])||config[name]<1||config[name]>20000))throw Error(`Invalid ${name} (1..20000)`);
   for(const [name,max] of [['maxObservations',10000],['maxArtifactBytes',1024*1024*1024]])if(config[name]!==undefined && (!Number.isSafeInteger(config[name])||config[name]<1||config[name]>max))throw Error(`Invalid ${name}`);
   if(config.viewport && (!Number.isSafeInteger(config.viewport.width)||!Number.isSafeInteger(config.viewport.height)||config.viewport.width<1||config.viewport.height<1||config.viewport.width>4096||config.viewport.height>4096))throw Error('Bounded viewport required');
   for (const name of ['maxExternalActions','maxRepeatedStates']) if (config[name] !== undefined && (!Number.isSafeInteger(config[name]) || config[name] < 1)) throw Error(`Invalid ${name}`);

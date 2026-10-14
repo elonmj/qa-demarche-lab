@@ -1,0 +1,445 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "timezone": "Africa/Porto-Novo",
+  "objective": "Tester qa-demarche-lab sur la maquette OraEtLabora; distinguer défauts du harnais, limitations et défauts de la cible.",
+  "verdict": "Campagne réelle réussie au niveau des gestes et preuves, mais couverture partielle et quatre défauts de harnais à corriger avant de considérer ses rapports automatiquement exploitables.",
+  "harnessCommit": "0b1622542f587e429cb7f64799070ce557a04a6e",
+  "sourceTarget": "Maquette statique OraEtLabora autorisée par le propriétaire",
+  "sourceHtmlJsCssUnchanged": true,
+  "consent": "Copie locale de données fictives autorisée par le propriétaire. Lectures limitées aux fichiers statiques copiés; aucun endpoint serveur d’écriture.",
+  "bootstrap": {
+    "npmCi": "pass",
+    "chromiumInstall": "pass",
+    "syntax": "pass",
+    "tests": {
+      "pass": 136,
+      "fail": 0
+    },
+    "demo": "confirmed"
+  },
+  "liveWorker": {
+    "model": "gpt-6.1-sol",
+    "calls": 2,
+    "declaredInputOutputTokens": 28515,
+    "actualUsdCost": null,
+    "stop": "bounded, maximum deux décisions",
+    "automaticRetry": false,
+    "fallback": false
+  },
+  "coverage": {
+    "main": {
+      "configured": 73,
+      "pass": 58,
+      "not-run": 12,
+      "fail": 3
+    },
+    "supplementary": [
+      {
+        "scenario": "controle-auteur",
+        "verdict": "pass"
+      },
+      {
+        "scenario": "exploration",
+        "verdict": "not-run"
+      }
+    ],
+    "navigation": {
+      "attemptedPageViewportPairs": 16,
+      "observed": 14,
+      "blocked": 2
+    },
+    "runs": [
+      {
+        "run": "desktop",
+        "exitCode": 4,
+        "observations": 8,
+        "actions": 8,
+        "holds": 0
+      },
+      {
+        "run": "mobile",
+        "exitCode": 3,
+        "observations": 8,
+        "actions": 8,
+        "holds": 0
+      },
+      {
+        "run": "rpc",
+        "exitCode": 4,
+        "observations": 26,
+        "actions": 22,
+        "holds": 0
+      },
+      {
+        "run": "local-review",
+        "exitCode": 0,
+        "observations": 18,
+        "actions": 17,
+        "holds": 0
+      },
+      {
+        "run": "worker",
+        "exitCode": 4,
+        "observations": 3,
+        "actions": 2,
+        "holds": 0
+      },
+      {
+        "run": "long-name",
+        "exitCode": 4,
+        "observations": 1,
+        "actions": 0,
+        "holds": 0
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "H01",
+      "target": "harness",
+      "priority": "P1",
+      "status": "confirmed-integration-limit",
+      "title": "Le plafond DOM bloque la page Collège",
+      "reproduction": [
+        "Servir la copie locale de la maquette.",
+        "Utiliser desktop.json ou mobile.json, mission page-0-college.",
+        "Le moteur navigue vers /college.html puis refuse son observation."
+      ],
+      "expected": "Une campagne multi-écrans doit pouvoir observer la vue active dans un budget documenté; le plafond actuel est toutefois un garde-fou intentionnel.",
+      "observed": {
+        "totalControls": 216,
+        "renderedControls": 95,
+        "cap": 200,
+        "error": "DOM control cap reached; observation refused",
+        "affectedViewports": [
+          1440,
+          390
+        ]
+      },
+      "impact": "Un rôle central et ses 6 écrans restent hors couverture. Le compteur comprend aussi les contrôles des sections masquées.",
+      "proofs": [
+        {
+          "file": "artifacts/oraetlabora-20261013/pilot.json"
+        },
+        {
+          "file": "artifacts/oraetlabora-20261013/desktop/report.json"
+        },
+        {
+          "file": "artifacts/oraetlabora-20261013/mobile/report.json"
+        }
+      ],
+      "code": {
+        "file": "src/browser.mjs",
+        "line": 51
+      },
+      "suggestion": "Définir un budget configurable et borné, ou observer la section active avec un plafond distinct sur le DOM global. Conserver les gardes contre les pages excessives.",
+      "acceptance": "Cette cible peut être observée sans supprimer la protection contre un DOM excessif; si le plafond est dépassé, le rapport explique nombre, plafond et couverture perdue.",
+      "limits": "Limite du harnais, pas défaut produit ni permission de contourner la garde."
+    },
+    {
+      "id": "H02",
+      "target": "harness",
+      "priority": "P2",
+      "status": "confirmed-defect",
+      "title": "Un nom accessible long devient introuvable dans un scénario écrit",
+      "reproduction": [
+        "Ouvrir /index.html.",
+        "Déclarer action click avec le nom accessible complet de la carte Secrétaire de saisie.",
+        "Exécuter le scénario long-name.json."
+      ],
+      "expected": "Le lien visible et unique est résolu par son nom accessible exact.",
+      "observed": {
+        "actualNameLength": 180,
+        "observationNameLength": 160,
+        "error": "Protocol divergence: expected control absent or ambiguous"
+      },
+      "impact": "Un scénario conforme au contrat du README ne peut pas ouvrir cette carte; une navigation par route fonctionne mais évite le parcours à tester.",
+      "proofs": [
+        {
+          "file": "artifacts/oraetlabora-20261013/long-name-values.json"
+        },
+        {
+          "run": "long-name",
+          "id": "660cf765-4fc8-4adc-8cf8-b740aefe0c72",
+          "file": "artifacts/oraetlabora-20261013/long-name/observation-660cf765-4fc8-4adc-8cf8-b740aefe0c72.json"
+        }
+      ],
+      "code": {
+        "file": "src/browser.mjs",
+        "line": 69
+      },
+      "relatedCode": {
+        "file": "src/engine.mjs",
+        "line": 302
+      },
+      "suggestion": "Séparer le nom complet utilisé pour la résolution interne du texte borné transmis au modèle.",
+      "acceptance": "Le clic écrit sur le nom complet de 180 caractères réussit; les observations worker restent bornées.",
+      "limits": "Reproduit sur une carte unique; les ambiguïtés réelles doivent continuer à être refusées."
+    },
+    {
+      "id": "H03",
+      "target": "harness",
+      "priority": "P2",
+      "status": "confirmed-defect",
+      "title": "Les assertions UI configurées ne sont pas évaluées en exploration",
+      "reproduction": [
+        "Lire worker.json: assertion sans-erreur-js configurée.",
+        "Le worker réalise deux actions; explore puis verifyChecks laisse cette assertion not-run.",
+        "Contre-épreuve déterministe: même assertion sans-debordement, provider de fixture finish; exploration=observed mais not-run, scénario écrit=pass."
+      ],
+      "expected": "Les assertions de l’exploration sont évaluées sur les observations convenues, ou cette absence de support est refusée dès la configuration.",
+      "observed": {
+        "liveRunVerdict": "bounded",
+        "liveAssertion": "not-run",
+        "deterministicVerdict": "observed",
+        "deterministicExplorationAssertion": "not-run",
+        "authoredSameAssertion": "pass"
+      },
+      "impact": "Même un worker qui termine normalement ne vérifie pas les assertions UI de sa mission. Le rapport signale correctement le manque, mais la couverture promise par la configuration est perdue.",
+      "proofs": [
+        {
+          "file": "artifacts/oraetlabora-20261013/worker/report.json"
+        },
+        {
+          "file": "artifacts/oraetlabora-20261013/assertion-control/report.json"
+        },
+        {
+          "run": "worker",
+          "id": "53c53e2c-164f-4ea2-97d2-309cf5281774",
+          "file": "artifacts/oraetlabora-20261013/worker/observation-53c53e2c-164f-4ea2-97d2-309cf5281774.json"
+        }
+      ],
+      "code": {
+        "file": "src/engine.mjs",
+        "line": 310
+      },
+      "relatedCode": {
+        "file": "src/engine.mjs",
+        "line": 323
+      },
+      "suggestion": "Mutualiser l’évaluation des assertions entre les chemins authored et explore, avec preuves et état non exécuté conservés en cas d’arrêt avant observation.",
+      "acceptance": "La fixture finish et l’exploration réelle produisent une couverture d’assertions cohérente; aucune assertion non exécutée ne devient pass.",
+      "limits": "La reproduction de contrôle utilise une décision synthétique finish; aucun nouvel appel réel ni fallback."
+    },
+    {
+      "id": "H04",
+      "target": "harness",
+      "priority": "P2",
+      "status": "confirmed-defect",
+      "title": "Le rapport compte zéro token malgré l’usage CLI enregistré",
+      "reproduction": [
+        "Lire les événements worker-usage, séquences 15 et 30 du run worker.",
+        "Comparer workers.codex-worker.reportedTokens dans son report.json."
+      ],
+      "expected": 28515,
+      "observed": {
+        "reportedTokens": 0,
+        "usageSamples": [
+          {
+            "sequence": 15,
+            "input": 13878,
+            "output": 70
+          },
+          {
+            "sequence": 30,
+            "input": 14507,
+            "output": 60
+          }
+        ]
+      },
+      "impact": "Le compteur de consommation devient trompeur pour le propriétaire. Le nombre d’appels et les réservations restent corrects.",
+      "proofs": [
+        {
+          "file": "artifacts/oraetlabora-20261013/worker/report.json"
+        },
+        {
+          "file": "artifacts/oraetlabora-20261013/worker/ledger.jsonl",
+          "eventSequences": [
+            15,
+            30
+          ]
+        }
+      ],
+      "code": {
+        "file": "src/engine.mjs",
+        "line": 146
+      },
+      "suggestion": "Normaliser input_tokens + output_tokens si total_tokens n’est pas fourni; ne pas additionner les tokens mis en cache une seconde fois. Indiquer indisponible quand aucun compteur n’est reçu.",
+      "acceptance": "Les deux événements donnent 28515 tokens déclarés au lieu de 0, sans affirmer un coût facturé.",
+      "limits": "Usage déclaré par le CLI; ni facture USD ni consommation de l’orchestrateur."
+    },
+    {
+      "id": "H05",
+      "target": "harness",
+      "priority": "P2",
+      "status": "confirmed-defect",
+      "title": "Le rapport d’une assertion UI échouée perd les valeurs et le contexte du défaut",
+      "reproduction": [
+        "Lire mobile/report.json et mobile/REPORT.md.",
+        "Les trois contrôles sans-debordement sont fail.",
+        "Dans coverage, chercher expected/observed; dans hypotheses, chercher une description de ces défauts."
+      ],
+      "expected": "Issue, reproduction, attendu, observé, impact, preuve et limite directement dans REPORT.md/report.json, comme le contrat de livraison le demande.",
+      "observed": {
+        "failedAssertions": 3,
+        "coverageContainsExpectedObserved": false,
+        "hypotheses": 0,
+        "markdownMessage": "Aucune hypothèse modèle."
+      },
+      "impact": "Le constructeur doit reconstruire chaque défaut depuis la configuration et les observations. Le présent rapport a dû faire cette synthèse manuellement.",
+      "proofs": [
+        {
+          "file": "artifacts/oraetlabora-20261013/mobile/report.json"
+        },
+        {
+          "file": "artifacts/oraetlabora-20261013/mobile/REPORT.md"
+        }
+      ],
+      "code": {
+        "file": "src/engine.mjs",
+        "line": 293
+      },
+      "relatedCode": {
+        "file": "src/report.mjs",
+        "line": 41
+      },
+      "suggestion": "Conserver expected, observed, path et portée UI pour chaque assertion, et rendre un bloc de défaut factuel pour les échecs; préserver la séparation avec les preuves métier.",
+      "acceptance": "Un développeur comprend les trois débordements depuis les deux rapports sans lire le ledger; aucun échec UI ne devient une preuve serveur.",
+      "limits": "Les readChecks indépendants ont déjà un format plus riche; le défaut concerne les assertions UI."
+    },
+    {
+      "id": "O01",
+      "target": "mockup",
+      "priority": "P2",
+      "status": "confirmed-ui-defect",
+      "title": "Le contexte et la navigation débordent sur mobile",
+      "reproduction": [
+        "Ouvrir /comite.html, /informaticien.html et /secretaire-saisie.html avec viewport 390 × 844.",
+        "Observer la largeur du document et les captures du harnais."
+      ],
+      "expected": {
+        "overflow": false,
+        "documentWidthMaximum": 390
+      },
+      "observed": [
+        {
+          "page": "comite.html",
+          "width": 1089,
+          "evidence": "44f79267-cac0-4eb0-8ad5-00fbc92e2e0a"
+        },
+        {
+          "page": "informaticien.html",
+          "width": 898,
+          "evidence": "9c376a48-a55b-4956-a7e7-55416ec8e082"
+        },
+        {
+          "page": "secretaire-saisie.html",
+          "width": 801,
+          "evidence": "cdfe1188-6db9-4120-8880-f01b541c23aa"
+        }
+      ],
+      "impact": "Les menus et dimensions du bandeau de travail sont coupés. Les captures montrent que le débordement touche le contexte de la tâche, en plus des tableaux.",
+      "proofs": [
+        {
+          "run": "mobile",
+          "id": "44f79267-cac0-4eb0-8ad5-00fbc92e2e0a",
+          "file": "artifacts/oraetlabora-20261013/mobile/observation-44f79267-cac0-4eb0-8ad5-00fbc92e2e0a.json"
+        },
+        {
+          "run": "mobile",
+          "id": "9c376a48-a55b-4956-a7e7-55416ec8e082",
+          "file": "artifacts/oraetlabora-20261013/mobile/observation-9c376a48-a55b-4956-a7e7-55416ec8e082.json"
+        },
+        {
+          "run": "mobile",
+          "id": "cdfe1188-6db9-4120-8880-f01b541c23aa",
+          "file": "artifacts/oraetlabora-20261013/mobile/observation-cdfe1188-6db9-4120-8880-f01b541c23aa.json"
+        }
+      ],
+      "suggestion": "Faire revenir menus et bandeaux à la ligne; contenir le défilement des tableaux dans leur zone. Vérifier à 390 et 768 px.",
+      "acceptance": "Le contexte de travail reste visible à 390 px et seul le tableau défile horizontalement si nécessaire.",
+      "limits": "Constat UI de maquette. La page Collège présente aussi un débordement dans la mesure auxiliaire, mais ses assertions ont été bloquées: pas de quatrième défaut confirmé par capture."
+    }
+  ],
+  "successes": [
+    {
+      "description": "Consultation UI des numéros fictifs valide, inconnu et incomplet; aucun résultat inventé pour les deux derniers.",
+      "evidence": [
+        {
+          "scenario": "parent-valide",
+          "check": "numero-consulte",
+          "verdict": "pass",
+          "evidence": [
+            "d6f910dd-4ecd-4fa0-8cc3-b6c55c964fe5"
+          ]
+        },
+        {
+          "scenario": "parent-inconnu",
+          "check": "message-unique",
+          "verdict": "pass",
+          "evidence": [
+            "b9fc0409-1a92-4486-bddf-a253356e5223"
+          ]
+        },
+        {
+          "scenario": "parent-incomplet",
+          "check": "message-unique",
+          "verdict": "pass",
+          "evidence": [
+            "a9ef31aa-258e-4a7c-807a-8001cf08d286"
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Commentaire de revue local conservé après rechargement de page, compteur=1.",
+      "evidence": {
+        "run": "local-review",
+        "id": "2c9752f3-18c7-498d-a3c1-da3ebace2969",
+        "file": "artifacts/oraetlabora-20261013/local-review/observation-2c9752f3-18c7-498d-a3c1-da3ebace2969.json"
+      }
+    },
+    {
+      "description": "Saisie UI de 12,5 puis chaîne vide: cellule vide reste vide.",
+      "evidence": [
+        {
+          "run": "local-review",
+          "id": "ed0b3e4a-1090-4768-90ee-2d050b9b952a",
+          "file": "artifacts/oraetlabora-20261013/local-review/observation-ed0b3e4a-1090-4768-90ee-2d050b9b952a.json"
+        },
+        {
+          "run": "local-review",
+          "id": "1eff1891-14e9-4d8a-8e9d-3072867f0a20",
+          "file": "artifacts/oraetlabora-20261013/local-review/observation-1eff1891-14e9-4d8a-8e9d-3072867f0a20.json"
+        }
+      ]
+    },
+    {
+      "description": "Les états accès refusé, erreur, validé sont accessibles par sélection; la tentative fill sur une note validée est refusée et conservée comme tentative.",
+      "evidence": {
+        "run": "rpc",
+        "id": "5d5bed5d-bc2e-4794-9eca-43c69f893f59",
+        "file": "artifacts/oraetlabora-20261013/rpc/observation-5d5bed5d-bc2e-4794-9eca-43c69f893f59.json"
+      }
+    }
+  ],
+  "limits": [
+    "Maquette statique: aucune écriture serveur, aucune persistence métier à certifier. Les commentaires sont du localStorage uniquement.",
+    "Rôles représentés par les pages; session moteur visitor. Aucune preuve d’authentification ou d’isolation serveur.",
+    "Les actions navigateur passent par Engine/BrowserAdapter; mesures DOM supplémentaires uniquement en lecture. Aucun moteur modifié.",
+    "Deux décisions réelles ne mesurent pas la qualité autonome, les faux positifs ou la détection complète de défauts.",
+    "Les 28 écrans et 21 documents ne sont pas tous parcourus; contrôle initial de sept pages sur huit seulement. Pas de test papier/A4, lecteur d’écran, import, calcul métier ou erreur réseau réelle.",
+    "Tab/Entrée ne sont pas des actions exposées par ce moteur: parcours clavier et motif déclenché par frappe en état validé non testés. Le refus de fill ne prouve pas ce parcours.",
+    "Assertions sans-erreur-js finales uniquement: elles ne certifient pas l’absence d’erreurs pendant tout le parcours.",
+    "Le premier essai de fixture de contrôle a été arrêté avant réservation pour identifiant worker non déclaré; journal conservé, aucune requête LLM. Le contrôle avec le nom fixe scripted-fixture est une campagne distincte.",
+    "Les preuves brutes, journaux et quota restent privés dans artifacts; les rapports de relais contiennent les faits revus, pas les sorties CLI brutes."
+  ],
+  "handoffOrder": [
+    "H02 — noms exacts et H03 — assertions d’exploration",
+    "H04 — compteurs et H05 — rapports exploitables",
+    "H01 — budget DOM sûr, puis reprise de la couverture Collège dans une nouvelle campagne explicitement distincte",
+    "O01 — correction responsive dans OraEtLabora"
+  ],
+  "evidenceAvailability": "Références portables vers les preuves privées conservées localement; journaux, captures et sorties CLI non distribués."
+}

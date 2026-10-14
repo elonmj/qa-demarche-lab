@@ -10,7 +10,7 @@
     "review-codex":{"kind":"codex","model":"gpt-6-sol","billing":{"mode":"subscription"},"timeoutMs":60000}
   },
   "scenarios":[
-    {"id":"mobile-exploration","agent":"low-codex","goal":"Explore visible interface in read-only mode, test one navigation hypothesis and finish with observed facts and limits.","persona":{"role":"first-time-visitor","constraints":"mobile, tired"},"steps":[],"assertions":[{"id":"no-overflow","path":"overflow","op":"equals","value":false}]},
+    {"id":"mobile-exploration","agent":"low-codex","goal":"Explore visible interface in read-only mode, test one navigation hypothesis and finish with observed facts and limits.","persona":{"role":"first-time-visitor","constraints":"mobile, tired"},"steps":[],"assertions":[{"id":"no-overflow","path":"overflow","op":"equals","value":false,"timing":"each-observation","impact":"Content exceeds the mobile viewport."},{"id":"no-runtime-error","path":"errors","op":"equals","value":[],"timing":"each-observation","impact":"The visited interface produces a JavaScript error."}]},
     {"id":"critical-review","agent":"review-codex","goal":"Review visible evidence critically; distinguish UI, business proof and untested server security. No writes.","steps":[]}
   ]
 }

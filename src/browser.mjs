@@ -11,7 +11,7 @@ export class BrowserAdapter {
     this.privateOptions = privateOptions;
     const sessionSecrets = Object.values(privateOptions.roles || {}).flatMap(role=>[...Object.values(role.headers || {}),...Object.values(role.probeHeaders || {}),...(role.storageState?.cookies || []).map(c=>c.value),...(role.storageState?.origins || []).flatMap(o=>(o.localStorage || []).map(s=>s.value))]);
     this.redactor = new Redactor([...(privateOptions.secrets || []),...sessionSecrets]);
-    this.errors = []; this.network = []; this.refs = []; this.snapshotId = null;
+    this.errors = []; this.network = []; this.resourceFailures=[];this.refs = []; this.snapshotId = null;
   }
   async start(role = 'visitor') {
     if (role !== 'visitor' && !Object.hasOwn(this.privateOptions.roles || {},role)) throw Error('Private session for requested role unavailable; no anonymous fallback');
@@ -21,22 +21,25 @@ export class BrowserAdapter {
     await this.context.routeWebSocket('**/*', socket => socket.close());
     await this.context.route('**/*', async route => {
       const request = route.request();
+      if(request.isNavigationRequest() && request.frame()===this.page?.mainFrame())this.resourceFailures=[];
       let result;
       try { result = this.policy.request(request.url(), request.method(), request.postData()); }
       catch { result = {allow:false,reason:'Journal unavailable; request denied'}; }
       // Never persist headers, query strings, request/response bodies or raw URLs.
-      const row = { method: request.method(), path: this.redactor.text(new URL(request.url()).pathname), ...result };
+      const row = { method: request.method(), path: this.redactor.text(new URL(request.url()).pathname), resourceType:request.resourceType(), ...result };
+      const failedResource=()=>{if(['document','stylesheet','script','font','xhr','fetch'].includes(row.resourceType)&&this.resourceFailures.length<100)this.resourceFailures.push({...row});};
       if(this.network.length<500)this.network.push(row);else this.networkDropped=(this.networkDropped || 0)+1;
       if (result.allow) {
         const response = await route.fetch({ maxRedirects: 0 }).catch(() => null);
-        if (!response) { row.transport = 'failed'; return route.abort(); }
+        if (!response) { row.transport = 'failed';failedResource(); return route.abort(); }
         row.httpStatus = response.status();
-        if (response.status() >= 300 && response.status() < 400) { row.transport = 'redirect-blocked'; return route.abort(); }
+        if (response.status() >= 300 && response.status() < 400) { row.transport = 'redirect-blocked';failedResource(); return route.abort(); }
+        if(response.status()>=400)failedResource();
         await route.fulfill({ response });
-      } else await route.abort();
+      } else {failedResource();await route.abort();}
     });
     this.page = await this.context.newPage();
-    this.page.setDefaultTimeout(1200); this.page.setDefaultNavigationTimeout(5000);
+    this.page.setDefaultTimeout(this.config.browserActionTimeoutMs ?? 1200); this.page.setDefaultNavigationTimeout(this.config.browserNavigationTimeoutMs ?? 5000);
     const recordError=message=>{if(this.errors.length<100)this.errors.push(this.redactor.text(message).slice(0,2000));else this.errorsDropped=(this.errorsDropped || 0)+1;};
     this.page.on('pageerror', error => recordError(error.message));
     this.page.on('console', message => { if (message.type() === 'error') recordError(message.text()); });
@@ -48,7 +51,8 @@ export class BrowserAdapter {
     for (const ref of this.refs) await ref.handle.dispose().catch(() => {});
     this.refs = []; this.snapshotId = randomUUID();
     const selector='button,a[href],input,select,textarea,[role="slider"],[role="button"]';
-    if(await this.page.locator(selector).count()>200)throw Error('DOM control cap reached; observation refused');
+    const controlCount=await this.page.locator(selector).count(),controlLimit=this.config.maxDomControls ?? 200;
+    if(controlCount>controlLimit)throw Error(`DOM control cap reached: ${controlCount} controls, limit ${controlLimit}; observation refused`);
     const handles = await this.page.$$(selector);
     const elements = [];
     for (const handle of handles) {
@@ -60,7 +64,7 @@ export class BrowserAdapter {
         const occluded = visible && hit !== element && !element.contains(hit);
         const name = (element.getAttribute('aria-label') || [...(element.labels || [])].map(l => l.innerText).join(' ') || element.innerText || '').trim();
         if(name.length>100000 || (element.value?.length || 0)>100000)throw Error('Control text cap reached');
-        return { visible:visible && !sensitiveSelectors.some(selector=>element.closest(selector)), occluded, disabled: !!element.disabled || element.getAttribute('aria-disabled') === 'true', tag: element.tagName, type: element.getAttribute('type'), name, value: element.type === 'password' ? '[REDACTED]' : element.value || null, href: element.tagName === 'A' ? element.getAttribute('href')?.split(/[?#]/)[0] : null };
+        return { visible:visible && !sensitiveSelectors.some(selector=>element.closest(selector)), occluded, disabled: !!element.disabled || element.getAttribute('aria-disabled') === 'true', readOnly:!!element.readOnly || element.getAttribute('aria-readonly') === 'true', tag: element.tagName, type: element.getAttribute('type'), name, value: element.type === 'password' ? '[REDACTED]' : element.value || null, href: element.tagName === 'A' ? element.getAttribute('href')?.split(/[?#]/)[0] : null };
       },this.config.sensitiveSelectors || []).catch(error => {if(error.message.includes('text cap'))throw Error('Control text cap reached');return null;});
       if (!descriptor?.visible || descriptor.occluded) { await handle.dispose(); continue; }
       const signature = JSON.stringify([descriptor.tag,descriptor.type,descriptor.name]);
@@ -85,6 +89,7 @@ export class BrowserAdapter {
     const view = this.redactor.value({ id: this.snapshotId, role: this.role, path: new URL(this.page.url()).pathname, text: this.redactor.text(text).slice(0,14000), elements, screenshot: file, errors: this.errors.splice(0), network: this.network.splice(0), overflow: await this.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), busy: await this.page.locator('[aria-busy=true]').evaluateAll(nodes=>nodes.some(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(e).visibility!=='hidden';})), viewport: this.page.viewportSize() });
     this.store.assertOpen();
     view.errorsDropped=this.errorsDropped || 0;view.networkDropped=this.networkDropped || 0;
+    view.resourceFailures=this.redactor.value(this.resourceFailures);
     this.errorsDropped=0;this.networkDropped=0;
     const json=JSON.stringify(view,null,2),bytes=png.byteLength+Buffer.byteLength(json);
     if((this.store.state.artifactBytes || 0)+bytes>(this.config.maxArtifactBytes || 64*1024*1024))throw Error('Persistent artifact byte cap reached; no capture written');
@@ -93,6 +98,12 @@ export class BrowserAdapter {
     fs.writeFileSync(path.join(this.store.directory,file),png,{mode:0o600});
     fs.writeFileSync(path.join(this.store.directory,`observation-${view.id}.json`), json,{mode:0o600});
     return view;
+  }
+  resolveControl(target,snapshotId) {
+    if(snapshotId!==this.snapshotId)throw Error('Stale snapshot for authored control resolution');
+    // Full names stay private to the adapter; worker observations remain bounded/redacted.
+    const cleanTarget=this.redactor.text(target);
+    return this.refs.flatMap((ref,index)=>this.redactor.text(ref.descriptor.name)===cleanTarget?[{ref:index}]:[]);
   }
   async retainReference(decision) {
     if (decision.snapshotId !== this.snapshotId) throw Error('Stale preparation snapshot');
@@ -108,6 +119,10 @@ export class BrowserAdapter {
   }
   async act(decision) {
     this.store.assertOpen();
+    const remaining=this.config.budget.maxDurationMs ? this.config.budget.maxDurationMs-(this.policy.clock()-Date.parse(this.store.state.createdAt)) : Infinity;
+    if(remaining<=0)throw Error('Campaign deadline reached; gesture denied');
+    this.page.setDefaultTimeout(Math.max(1,Math.min(this.config.browserActionTimeoutMs ?? 1200,remaining)));
+    this.page.setDefaultNavigationTimeout(Math.max(1,Math.min(this.config.browserNavigationTimeoutMs ?? 5000,remaining)));
     if (decision.action === 'navigate') {
       const url = new URL(decision.path, this.config.origin);
       if (!this.policy.isRead(url.href, 'GET')) throw Error('Navigation undeclared');
@@ -130,6 +145,7 @@ export class BrowserAdapter {
     if (decision.action === 'click') await el.click();
     else if (decision.action === 'fill') {
       if (ref.descriptor.type === 'password') throw Error('Credentials belong to private bootstrap');
+      if (ref.descriptor.readOnly) throw Error('Read-only control; fill refused');
       await el.fill(decision.text);
     } else if (decision.action === 'select') await el.selectOption({ label: decision.value });
     else if (decision.action === 'slider') {

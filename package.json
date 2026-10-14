@@ -1,6 +1,6 @@
 {
   "name": "qa-demarche-lab",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "Portable QA harness with selectable CLI agents and any-LLM orchestration",
@@ -9,6 +9,7 @@
   "scripts": {
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "benchmark": "node fixtures/benchmark.mjs",
+    "evaluate:discovery": "node fixtures/discovery-evaluation.mjs",
     "demo": "node src/cli.mjs demo",
     "check": "node src/cli.mjs check",
     "agents": "node src/cli.mjs agents",

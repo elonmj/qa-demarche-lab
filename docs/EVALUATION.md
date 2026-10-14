@@ -78,3 +78,12 @@ node fixtures/visual-qa.mjs
 ```
 
 Sources des fixtures versionnées ; chemins de sorties timestampés pour ne pas écraser les runs. État de site en mémoire conservé pendant les tests de reprise, jamais reset au milieu d'une opération. Aucun compte de site réel ni benchmark SaaS exploité. Les essais CLI utilisent l'authentification normale des abonnements locaux, sans copie des credentials. Une fuite réelle ou un second geste non autorisé aurait fait échouer les assertions, pas diminué une moyenne.
+
+
+## Corrections et mesure de détection — 14 octobre 2026
+
+Les assertions UI s’exécutent maintenant en exploration; l’option each-observation conserve les défauts transitoires, y compris via RPC. Le [rapport de corrections](campaigns/corrections-2026-10-14/REPORT.md) distingue la détection par contrats de l’autonomie du worker.
+
+Banc de 21 cas à seeds fixes, labels hors mission, décideur scripté: 9 vrais positifs, 3 faux négatifs, 0 faux positif; rappel global 75 %. Les trois manqués sont des totaux métier sans contrat/probe configuré. Trois cas de ressource indisponible restent des prérequis. Essai réel distinct: six décisions gpt-6.1-sol, trois vues atteintes, deux défauts UI signalés et zéro faux signalement sur la vue saine; aucune généralisation statistique. Nouvelle recette OraEtLabora: les huit pages observées à deux tailles, 43/48 contrôles passent, cinq débordements documentés. 146 tests locaux passent; aucune CI/Linux supplémentaire revendiquée.
+
+Reproduire: npm run evaluate:discovery. Le live reste une commande séparée et plafonnée; aucun appel modèle dans npm test ou le benchmark standard. Preuves privées référencées dans le report.json adjacent.

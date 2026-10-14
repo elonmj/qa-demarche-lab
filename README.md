@@ -2,7 +2,7 @@
 
 Harnais local pour **agents simulant une démarche de QA humain**. Ils ne sont pas de véritables testeurs humains. Tout orchestrateur LLM avec des outils de processus peut cloner ce dépôt, choisir ses agents exécutants et piloter des missions QA. Playwright exécute les gestes ; le moteur impose les permissions, les budgets, les preuves et la reprise.
 
-Version **0.2.0 beta**, code sous licence MIT. Deux sites synthétiques, tests de reprise/budgets et comparaison Playwright écrite. Codex CLI a produit deux décisions réelles et piloté le navigateur avant arrêt au plafond de recette ; cela ne mesure pas encore la qualité autonome. Le profil Antigravity/Gemini est expérimental et refusé sur le poste testé : 60 outils annoncés, garde native non attestée. Aucun service SaaS multiutilisateur n'est livré.
+Version **0.2.1 beta**, code sous licence MIT. Assertions UI actives pendant l'exploration, rapports de défauts exploitables et budgets DOM/délais configurables. Validation locale : 146 tests passent. Le banc de détection à 21 cas détecte 9 bugs sur 12, sans faux positif ; trois erreurs métier sans contrat restent manquées. Six décisions Codex réelles atteignent trois vues, avec deux défauts UI signalés et aucun sur la vue saine ; cela ne mesure pas une qualité autonome générale. Le profil Antigravity/Gemini reste expérimental et refusé sur le poste testé : 60 outils annoncés, garde native non attestée. Aucun service SaaS multiutilisateur n'est livré. Voir [les corrections et limites mesurées](docs/campaigns/corrections-2026-10-14/REPORT.md).
 
 ## Pour un orchestrateur LLM
 
@@ -87,6 +87,26 @@ Le modèle voit seulement la mission, le persona, les états factuels et une obs
 Chaque mission indique son rôle, son état et sa raison d'arrêt : `not-run`, `observed`, `bounded`, `blocked` ou `interrupted`, avec appels du passage et dernière preuve. Les huit derniers gestes de la mission sont transmis au worker sans recopier les valeurs saisies. Les tentatives restent distinctes des effets observés, même après reprise. Les limites d'états répétés sont propres à chaque mission/rôle.
 
 Une session privée nommée absente provoque un arrêt sans repli anonyme ; `visitor` reste disponible sans bootstrap. Les contrôles portant le même nom dans plusieurs rôles gardent leurs preuves distinctes. `npm test` exécute les fichiers séquentiellement pour borner les navigateurs et processus simultanés.
+
+Les `assertions` UI sont évaluées à la fin des parcours écrits **et** des explorations. Ajouter `"timing":"each-observation"` pour contrôler chaque état rencontré et conserver un défaut qui disparaît ensuite. Les contrôles sont des contrats du propriétaire : par exemple `overflow equals false` et `errors equals []`, pas des attentes tirées des textes du site. Un champ d'observation inconnu ou une ressource requise bloquée produit `blocked-prerequisite`. Une affirmation du worker reste une hypothèse.
+
+Les échecs UI produisent des fiches dans `report.findings` et `REPORT.md` avec attendu, observé, page, rôle, viewport, gestes et IDs de preuve. Ils restent distincts des `readChecks` à deux lectures indépendantes et ne prouvent pas une écriture ou une faille serveur. Les occurrences d'un même contrôle/scénario/rôle/page sont dédupliquées, leurs preuves conservées.
+
+`maxDomControls` borne les contrôles DOM avant création des références : 200 par défaut, configurable de 1 à 2000. Déclarer par exemple 500 pour une maquette comportant plusieurs écrans dans une même page ; aucun changement du moteur n'est nécessaire. Les noms complets servent à résoudre les étapes écrites ; le worker reçoit toujours un nom borné à 160 caractères. L'usage token additionne entrée et sortie quand le fournisseur ne donne pas de total ; absence de compteur signifie indisponible, jamais zéro coût.
+
+Une machine chargée peut rendre un geste ou une lecture inconclusif. Les délais UI sont explicites: `browserActionTimeoutMs` (1200 ms par défaut) et `browserNavigationTimeoutMs` (5000 ms), chacun borné à 20000 ms; un geste est aussi borné par la deadline restante. Leur changement exige une nouvelle configuration/campagne, sans retry du geste interrompu. Toute intention non rapprochée impose d'abord une réconciliation; ce réglage n'autorise pas une resoumission. Le benchmark conserve ses mesures avant sa porte qualité, même lorsqu'il manque un défaut.
+
+Pour mesurer la détection plutôt que seulement les garde-fous :
+
+```powershell
+npm run evaluate:discovery
+# Essai CLI réel séparé, au plus 6 décisions; modèle explicitement supporté par votre CLI :
+node fixtures/discovery-evaluation.mjs --live gpt-6.1-sol
+# Recette statique locale, uniquement sur une cible autorisée et fictive :
+node fixtures/recheck-static.mjs "<chemin-vers-maquette>"
+```
+
+Le banc à seeds fixes tient les labels de défaut hors des missions. Il mesure bugs détectés, manqués et faux positifs, y compris un total métier faux que les contrats UI génériques ne détectent pas. Son décideur est scripté : aucun rappel autonome LLM revendiqué. Les essais live s'arrêtent au premier échec et ne relancent ni ne changent le fournisseur. Voir [la méthode de mesure](docs/EVALUATION.md).
 
 `REPORT.md` donne état, contrôles, problème/reproduction/attendu/observé/impact ; `report.json` contient les lectures indépendantes, valeurs et périmètres. `uncertain` = relecture/revue, jamais bouton « réessayer ». Les captures sont masquées, les corps réseau et sessions ne sont pas enregistrés. Conserver les artifacts privés et les supprimer selon son besoin ; la rétention automatique locale n'est pas implémentée.
 
